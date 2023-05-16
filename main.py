@@ -12,25 +12,20 @@ __appname__ = "NuoMi"
 
 
 def main():
-
-
-
+    config_video_path = "assets/videos.mp4"
+    
     translator = QtCore.QTranslator()
     translator.load(
         QtCore.QLocale.system().name(),
         osp.join(osp.dirname(osp.abspath(__file__)), "translate"),
     )
+    
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName(__appname__)
     app.setWindowIcon(newIcon("icon"))
     app.installTranslator(translator)
-    win = MainWindow()
-
-    # if reset_config:
-    #     logger.info("Resetting Qt config: %s" % win.settings.fileName())
-    #     win.settings.clear()
-    #     sys.exit(0)
-
+    win = MainWindow(config_video_path)
+    
     win.show()
     win.raise_()
     sys.exit(app.exec_())
