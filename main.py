@@ -14,7 +14,7 @@ __appname__ = "NuoMi"
 def main():
 
 
-
+    config_images_dir = "examples/assets"
     translator = QtCore.QTranslator()
     translator.load(
         QtCore.QLocale.system().name(),
@@ -24,7 +24,7 @@ def main():
     app.setApplicationName(__appname__)
     app.setWindowIcon(newIcon("icon"))
     app.installTranslator(translator)
-    win = MainWindow()
+    win = MainWindow(config_images_dir)
 
     # if reset_config:
     #     logger.info("Resetting Qt config: %s" % win.settings.fileName())
