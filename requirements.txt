@@ -1,0 +1,4 @@
+qtpy
+pyside6
+opencv
+numpy
