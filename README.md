@@ -37,7 +37,7 @@ python main.py
 
 ### 设备拓扑图
 
-![设备拓扑图（device topology）](assets/device_topology.png)
+![设备拓扑图（device topology）](nuomi/assets/device_topology.png)
 
  ## 系统界面开发
 
