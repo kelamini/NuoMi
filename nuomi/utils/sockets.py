@@ -6,7 +6,7 @@ import socket
 import struct
 
 
-def socket_service(ip="127.0.0.1", point=8000):
+def socket_service(ip="192.168.4.3", point=8000):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -23,7 +23,7 @@ def socket_service(ip="127.0.0.1", point=8000):
         conn, addr = s.accept()
         print ('Accept new connection from IP: {0}'.format(addr[0]))
         conn.settimeout(500)
-        conn.send('Server is OK!'.encode('utf-8'))
+        conn.send('Server connection is OK!'.encode('utf-8'))
     
         while True:
             fileinfo_size = struct.calcsize('128sl')
@@ -36,7 +36,7 @@ def socket_service(ip="127.0.0.1", point=8000):
                 print ('===> The file name: {0}, and file size: {1} Mb.'.format(str(fn), math.ceil(filesize/(1024**2))))
     
                 recvd_size = 0  # 定义已接收文件的大小
-                # 存储在该脚本所在目录下面
+                # 存储位置
                 fp = open('nuomi/data/' + str(fn), 'wb')
                 print ('===> Start receiving!')
                 # 将分批次传输的二进制流依次写入到文件
