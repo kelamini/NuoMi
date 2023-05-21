@@ -5,7 +5,7 @@ import cv2 as cv
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QPixmap, QImage
 from qtpy.QtWidgets import (QMainWindow, QWidget, QPushButton, QLabel, QHBoxLayout, QVBoxLayout,
-                            QSpacerItem, QSizePolicy)
+                            QSpacerItem, QSizePolicy, QCheckBox)
 
 from utils import AccessBlock
 
@@ -14,8 +14,10 @@ class MainWindow(QMainWindow):
     def __init__(self, videofile=None):
         super(MainWindow, self).__init__()
         self.resize(1296, 720)
-
+        
+        # spacer
         self.spacerItem = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        
         # button
         self.play_video_button = QPushButton("Play")
         self.unplay_video_button = QPushButton("Unplay")
@@ -28,6 +30,14 @@ class MainWindow(QMainWindow):
         self.videos_label = QLabel("Display Videos")
         self.videos_label.setScaledContents(True)
         self.videos_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # checkbox
+        self.person_detect_checkbox = QCheckBox("person detection")
+        self.person_detect_checkbox.setCheckState(Qt.CheckState.Unchecked)
+        self.gesture_recognition_checkbox = QCheckBox("gesture recognition")
+        self.gesture_recognition_checkbox.setCheckState(Qt.CheckState.Unchecked)
+
+        
         # video button
         video_button_layout = QHBoxLayout()
         video_button_layout.addWidget(self.play_video_button)
@@ -38,12 +48,19 @@ class MainWindow(QMainWindow):
         control_button_layout.addWidget(self.control_lift_button)
         control_button_layout.addWidget(self.control_right_button)
         control_button_layout.addWidget(self.control_down_button)
+        # ai checkbox
+        ai_checkbox_layout = QVBoxLayout()
+        ai_checkbox_layout.addWidget(self.person_detect_checkbox)
+        ai_checkbox_layout.addWidget(self.gesture_recognition_checkbox)
+
 
         # button box
         button_layout = QVBoxLayout()
         button_layout.addItem(self.spacerItem)
         button_layout.addLayout(video_button_layout)
         button_layout.addLayout(control_button_layout)
+        button_layout.addLayout(ai_checkbox_layout)
+
 
         # global box
         global_layout = QHBoxLayout()
@@ -59,6 +76,7 @@ class MainWindow(QMainWindow):
         self.video_path = videofile
         self.video_timer = QTimer()
         self.handle_buttons()
+        self.handle_checkbox()
         self.open_video()
 
 
@@ -70,7 +88,22 @@ class MainWindow(QMainWindow):
         self.control_lift_button.clicked.connect(self.control_lift)
         self.control_right_button.clicked.connect(self.control_right)
 
-        
+    def handle_checkbox(self):
+        self.person_detect_checkbox.stateChanged.connect(self.person_detect_state_changed)
+        self.gesture_recognition_checkbox.stateChanged.connect(self.gesture_recognition_state_changed)
+  
+    def person_detect_state_changed(self, state):
+        if state == 0:  # False
+            print("person_detect_state_changed: ", state)
+        if state == 2:  # True
+            print("person_detect_state_changed: ", state)
+
+    def gesture_recognition_state_changed(self, state):
+        if state == 0:  # False
+            print("gesture_recognition_state_changed: ", state)
+        if state == 2:  # True
+            print("gesture_recognition_state_changed: ", state)
+
     def video_start(self):
         self.video_timer.start(100)
         self.video_timer.timeout.connect(self.video_play)
@@ -79,16 +112,16 @@ class MainWindow(QMainWindow):
         self.video_timer.stop()
     
     def control_top(self):
-        pass
+        print("control top clicked.")
 
     def control_down(self):
-        pass
+        print("control down clicked.")
 
     def control_lift(self):
-        pass
+        print("control lift clicked.")
 
     def control_right(self):
-        pass
+        print("control right clicked.")
 
     def open_video(self):
         if self.video_path == None:

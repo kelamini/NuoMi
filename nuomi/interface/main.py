@@ -12,7 +12,7 @@ __appname__ = "NuoMi"
 
 
 def main():
-    config_video_path = "assets/videos.mp4"
+    config_video_path = "nuomi/data/demo.flv"
     
     translator = QtCore.QTranslator()
     translator.load(
