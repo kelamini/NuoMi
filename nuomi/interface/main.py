@@ -12,7 +12,7 @@ __appname__ = "NuoMi"
 
 
 def main():
-    config_video_path = "nuomi/data/demo.flv"
+    # config_video_path = "rtsp://192.168.4.15:8554/mystream"
     
     translator = QtCore.QTranslator()
     translator.load(
@@ -24,7 +24,7 @@ def main():
     app.setApplicationName(__appname__)
     app.setWindowIcon(newIcon("icon"))
     app.installTranslator(translator)
-    win = MainWindow(config_video_path)
+    win = MainWindow()
     
     win.show()
     win.raise_()

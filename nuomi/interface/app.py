@@ -5,13 +5,13 @@ import cv2 as cv
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QPixmap, QImage
 from qtpy.QtWidgets import (QMainWindow, QWidget, QPushButton, QLabel, QHBoxLayout, QVBoxLayout,
-                            QSpacerItem, QSizePolicy, QCheckBox)
+                            QSpacerItem, QSizePolicy, QCheckBox, QLineEdit)
 
 from utils import AccessBlock
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, videofile=None):
+    def __init__(self):
         super(MainWindow, self).__init__()
         self.resize(1296, 720)
         
@@ -37,6 +37,11 @@ class MainWindow(QMainWindow):
         self.gesture_recognition_checkbox = QCheckBox("gesture recognition")
         self.gesture_recognition_checkbox.setCheckState(Qt.CheckState.Unchecked)
 
+        # lineedit
+        self.rtsp_url_lineedit = QLineEdit("RTSP URL: ")
+        # self.rtsp_url_lineedit.setMaxLength(20)
+        # self.rtsp_url_lineedit.setPlaceholderText("Enter rtsp url")
+        self.rtsp_url_lineedit.setInputMask('rtsp://000.000.000.000:xxxxxxxxxxxxxxxxxxxxxx')
         
         # video button
         video_button_layout = QHBoxLayout()
@@ -53,14 +58,13 @@ class MainWindow(QMainWindow):
         ai_checkbox_layout.addWidget(self.person_detect_checkbox)
         ai_checkbox_layout.addWidget(self.gesture_recognition_checkbox)
 
-
         # button box
         button_layout = QVBoxLayout()
-        button_layout.addItem(self.spacerItem)
+        button_layout.addWidget(self.rtsp_url_lineedit)
         button_layout.addLayout(video_button_layout)
         button_layout.addLayout(control_button_layout)
         button_layout.addLayout(ai_checkbox_layout)
-
+        button_layout.addItem(self.spacerItem)
 
         # global box
         global_layout = QHBoxLayout()
@@ -73,11 +77,11 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
         
         # --------------------------------------------------------
-        self.video_path = videofile
+        self.rtsp_url = None
         self.video_timer = QTimer()
         self.handle_buttons()
         self.handle_checkbox()
-        self.open_video()
+        self.handle_lineedit()
 
 
     def handle_buttons(self):
@@ -91,7 +95,11 @@ class MainWindow(QMainWindow):
     def handle_checkbox(self):
         self.person_detect_checkbox.stateChanged.connect(self.person_detect_state_changed)
         self.gesture_recognition_checkbox.stateChanged.connect(self.gesture_recognition_state_changed)
-  
+
+    def handle_lineedit(self):
+        self.rtsp_url_lineedit.returnPressed.connect(self.return_pressed)
+        self.rtsp_url_lineedit.textEdited.connect(self.text_edited)
+
     def person_detect_state_changed(self, state):
         if state == 0:  # False
             print("person_detect_state_changed: ", state)
@@ -105,7 +113,7 @@ class MainWindow(QMainWindow):
             print("gesture_recognition_state_changed: ", state)
 
     def video_start(self):
-        self.video_timer.start(100)
+        self.video_timer.start(10)
         self.video_timer.timeout.connect(self.video_play)
         
     def video_stop(self):
@@ -123,21 +131,29 @@ class MainWindow(QMainWindow):
     def control_right(self):
         print("control right clicked.")
 
+    def return_pressed(self):
+        print("Return pressed!")
+        self.rtsp_url_lineedit.setText(self.rtsp_url)
+        print(self.rtsp_url)
+        self.open_video()
+
+    def text_edited(self, text):
+        self.rtsp_url = text
+
     def open_video(self):
-        if self.video_path == None:
+        self.cap = cv.VideoCapture(self.rtsp_url)
+        if not self.cap.isOpened():
             print("Video Path Error!!!")
-        else:
-            self.cap = cv.VideoCapture(self.video_path)
-    
+
     def video_play(self):
         ret, image = self.cap.read()
         if ret:
             if len(image.shape) == 3:
-                video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_RGB888)
+                video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_BGR888)
             elif len(image.shape) == 1:
                 video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Indexed8)
             else:
-                video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_RGB888)
+                video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_BGR888)
             self.videos_label.setPixmap(QPixmap(video_img))
         else:
             self.cap.release()

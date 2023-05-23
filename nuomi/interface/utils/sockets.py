@@ -1,13 +1,13 @@
 #!coding=utf-8
-import sys
-import math
-import threading
 import socket
+import os
+import sys
 import struct
+import math
 
 
 class Server:
-    def __init__(self, ip="127.0.0.1", point=8000):
+    def __init__(self, ip="192.168.4.3", point=8000):
         self.ip = ip
         self.point = point
         
@@ -15,7 +15,7 @@ class Server:
         self.open_server()
         while True:
             self.listen_connection()
-            optional_key = self.conn.recv(1024).decode("utf-8")
+            optional_key = self.receive_message()
             # print("optional_key: ", optional_key)
             if optional_key == "d":
                 # self.conn.send("d".encode("utf-8"))
@@ -46,6 +46,12 @@ class Server:
     def close_server(self):
         self.server.close()
 
+    def send_message(self, message):
+        self.conn.send(message.encode('utf-8'))
+
+    def receive_message(self):
+        return self.conn.recv(1024).decode("utf-8")
+
     def accept_file(self):
         fileinfo_size = struct.calcsize('128sl')
         buf = self.conn.recv(fileinfo_size)
@@ -58,7 +64,7 @@ class Server:
 
             recvd_size = 0  # 定义已接收文件的大小
             # 存储位置
-            fp = open('nuomi/data/' + str(fn), 'wb')
+            fp = open('orangepi/data' + str(fn), 'wb')
             print ('===> Start receiving!')
             # 将分批次传输的二进制流依次写入到文件
             while not recvd_size == filesize:
@@ -75,20 +81,19 @@ class Server:
 
 
 class Client:
-    def __init__(self, file_path, ip="127.0.0.1", point=8000):
+    def __init__(self, ip="192.168.4.3", point=8000):
         self.ip = ip
         self.point = point
-        self.filepath = file_path
     
     def run(self):
         while True:
             self.open_client()
             optional_key = input("Input you optional(load file:'d'): ")
             if optional_key == "d":
-                self.client.send(optional_key.encode("utf-8"))
+                self.send_message(optional_key)
                 self.send_file()
             elif optional_key == "q":
-                self.client.close()
+                self.close_client()
                 break
             else:
                 print("Your input is Error!!!")
@@ -103,24 +108,31 @@ class Client:
             sys.exit(0)
         # print(self.client.recv(1024).decode("utf-8"))
 
-    def send_file(self):
-        if os.path.isfile(self.filepath):
+    def send_message(self, message):
+        self.client.send(message.encode("utf-8"))
+
+    def receive_message(self):
+        return self.client.recv(1204).decode("utf-8")
+
+    def send_file(self, filepath):
+        if os.path.isfile(filepath):
             # fileinfo_size = struct.calcsize('128sl')
-            fhead = struct.pack('128sl', os.path.basename(self.filepath).encode('utf-8'), os.stat(self.filepath).st_size)
+            fhead = struct.pack('128sl', os.path.basename(filepath).encode('utf-8'), os.stat(filepath).st_size)
             self.client.send(fhead)
 
             fp = open(self.filepath, 'rb')
             while True:
                 data = fp.read(1024)
                 if not data:
-                    print ('===> This file of {0} send over.'.format(os.path.basename(self.filepath)))
+                    print ('===> This file of {0} send over.'.format(os.path.basename(filepath)))
                     break
                 self.client.send(data)
-            self.client.close()
+    
+    def close_client(self):
+        self.client.close()
 
 
-if __name__ == "__main__":
-    # t = threading.Thread(target=socket_service)
-    # t.start()
-    server = Server()
-    server.run()
+if __name__ == '__main__':
+    file_path = input("Input you will send file path: ")
+    client = Client(file_path)
+    client.run()
