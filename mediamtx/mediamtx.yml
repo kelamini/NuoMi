@@ -1,0 +1,4 @@
+paths:
+  mystream: 
+    #    runOnDemand: ffmpeg -f v4l2 -i /dev/video2 -preset ultrafast -b:v 600k -c copy -vcodec h264 -f rtsp rtsp://localhost:8554/mystream
+    # runOnDemandRestart: yes
