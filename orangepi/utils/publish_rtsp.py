@@ -48,10 +48,10 @@ class GstreeamerPublishRtsp:
 
 
 class FfmpegPublishRtsp:
-    def __init__(self, urlrtsp="192.168.4.15", portrtsp=8554):
+    def __init__(self, urlrtsp="192.168.4.15", portrtsp=8554, streamrtsp=None):
         self.url = urlrtsp
         self.port = portrtsp
-        self.dir = "mystream"
+        self.stream = streamrtsp
     
     def init_videocapture(self):
         self.cap = cv.VideoCapture(2)
@@ -82,7 +82,7 @@ class FfmpegPublishRtsp:
             '-tune', 'zerolatency',
             '-f', 'rtsp', #  flv rtsp
             '-rtsp_transport', 'tcp',
-            'rtsp://{}:{}/{}'.format(self.url, self.port, self.dir),
+            'rtsp://{}:{}/{}'.format(self.url, self.port, self.stream),
             ] # rtsp rtmp 
         self.pipe = subprocess.Popen(command, shell=False, stdin=subprocess.PIPE)
 

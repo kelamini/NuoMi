@@ -5,9 +5,11 @@ import sys
 import struct
 import math
 
+from publish_rtsp import FfmpegPublishRtsp
+
 
 class Server:
-    def __init__(self, ip="192.168.4.3", point=8000):
+    def __init__(self, ip="192.168.4.15", point=8000):
         self.ip = ip
         self.point = point
         
@@ -17,9 +19,10 @@ class Server:
             self.listen_connection()
             optional_key = self.receive_message()
             # print("optional_key: ", optional_key)
-            if optional_key == "d":
-                # self.conn.send("d".encode("utf-8"))
-                self.accept_file()
+            if optional_key == "mystream_0":
+                self.conn.send("True".encode("utf-8"))
+                publish_ffmpeg_frame = FfmpegPublishRtsp(urlrtsp=self.ip, portrtsp=8554, streamrtsp=optional_key)
+                publish_ffmpeg_frame.run()
             else:
                 print("Client send message is False!!!")
                 continue

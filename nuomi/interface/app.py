@@ -1,6 +1,9 @@
 import os
 import os.path as osp
 import cv2 as cv
+from time import time, sleep
+
+from utils import Client
 
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QPixmap, QImage
@@ -84,7 +87,7 @@ class MainWindow(QMainWindow):
         
         # --------------------------------------------------------
         self.rtsp_url = None
-        self.rtsp_stream = "/mystream_0"
+        self.rtsp_stream = "mystream_0"
         self.video_timer = QTimer()
         self.handle_buttons()
         self.handle_checkbox()
@@ -131,8 +134,9 @@ class MainWindow(QMainWindow):
         self.video_timer.stop()
     
     def open_video(self):
-        rtsp_addr = self.rtsp_url + self.rtsp_stream
+        rtsp_addr = self.rtsp_url + "/" + self.rtsp_stream
         print("Will connect this rtsp stream: ", rtsp_addr)
+        sleep(5)
         self.cap = cv.VideoCapture(rtsp_addr)
         if not self.cap.isOpened():
             print("Can't open rtsp stream!!!")
@@ -165,26 +169,58 @@ class MainWindow(QMainWindow):
 
     def url_pressed(self):
         self.rtsp_url_lineedit.setText(self.rtsp_url)
-        self.open_video()
+        self.client = Client(ip=self.rtsp_url.split("//")[-1].split(":")[0], point=8000)
+        self.client.open_client()
+        self.client.send_message(self.rtsp_stream)
+        message = self.client.receive_message()
+        self.client.close_client()
+        if message == "True":
+            self.open_video()
+        else:
+            print("Can't open rtsp stream!!!")
 
     def url_edited(self, text):
         self.rtsp_url = text
 
     def stream_changed(self, index):
         if index == 0:
-            self.rtsp_stream = "/mystream_0"
+            self.rtsp_stream = "mystream_0"
             print(self.rtsp_stream)
             if not self.rtsp_url == None:
-                self.open_video()
+                self.client.open_client()
+                self.client.send_message(self.rtsp_stream)
+                message = self.client.receive_message()
+                self.client.close_client()
+                if message == "True":
+                    self.open_video()
+                else:
+                    print("Can't open rtsp stream!!!")
+
         elif index == 1:
-            self.rtsp_stream = "/mystream_1"
+            self.rtsp_stream = "mystream_1"
             print(self.rtsp_stream)
             if not self.rtsp_url == None:
-                self.open_video()
+                self.client.open_client()
+                self.client.send_message(self.rtsp_stream)
+                message = self.client.receive_message()
+                self.client.close_client()
+                if message == "True":
+                    self.open_video()
+                else:
+                    print("Can't open rtsp stream!!!")
+
         elif index == 2:
-            self.rtsp_stream = "/mystream_2"
+            self.rtsp_stream = "mystream_2"
             print(self.rtsp_stream)
             if not self.rtsp_url == None:
-                self.open_video()
+                self.client.open_client()
+                self.client.send_message(self.rtsp_stream)
+                message = self.client.receive_message()
+                self.client.close_client()
+                if message == "True":
+                    self.open_video()
+                else:
+                    print("Can't open rtsp stream!!!")
+
         else:
             pass

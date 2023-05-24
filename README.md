@@ -17,7 +17,19 @@ pip install -r requirements.txt
 
 ## 运行该项目
 
+1. 启动 rtsp 服务
 ```bash
+cd mediamtx
+./mediamtx
+```
+2. 运行端侧设备
+```bash
+
+```
+
+3. 启动 Qt 管理界面
+```bash
+cd nuomi/interface
 python main.py
 ```
 

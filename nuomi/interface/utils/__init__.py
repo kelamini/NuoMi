@@ -1,3 +1,3 @@
 from .qt import newIcon
-
-from .functions import AccessBlock
+from .sockets import Client
+from .sockets import Server
