@@ -5,9 +5,7 @@ import cv2 as cv
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QPixmap, QImage
 from qtpy.QtWidgets import (QMainWindow, QWidget, QPushButton, QLabel, QHBoxLayout, QVBoxLayout,
-                            QSpacerItem, QSizePolicy, QCheckBox, QLineEdit)
-
-from utils import AccessBlock
+                            QSpacerItem, QSizePolicy, QCheckBox, QLineEdit, QComboBox)
 
 
 class MainWindow(QMainWindow):
@@ -41,8 +39,12 @@ class MainWindow(QMainWindow):
         self.rtsp_url_lineedit = QLineEdit("RTSP URL: ")
         # self.rtsp_url_lineedit.setMaxLength(20)
         # self.rtsp_url_lineedit.setPlaceholderText("Enter rtsp url")
-        self.rtsp_url_lineedit.setInputMask('rtsp://000.000.000.000:xxxxxxxxxxxxxxxxxxxxxx')
-        
+        self.rtsp_url_lineedit.setInputMask('rtsp://000.000.000.000:00000')
+        # combobox
+        self.stream_combobox = QComboBox()
+        combobox_value_list = ["Living Room", "Kitchen", "Out Door"]
+        self.stream_combobox.addItems(combobox_value_list)
+
         # video button
         video_button_layout = QHBoxLayout()
         video_button_layout.addWidget(self.play_video_button)
@@ -57,10 +59,14 @@ class MainWindow(QMainWindow):
         ai_checkbox_layout = QVBoxLayout()
         ai_checkbox_layout.addWidget(self.person_detect_checkbox)
         ai_checkbox_layout.addWidget(self.gesture_recognition_checkbox)
+        # video stream combobox
+        stream_combobox_layout = QHBoxLayout()
+        stream_combobox_layout.addWidget(self.rtsp_url_lineedit)
+        stream_combobox_layout.addWidget(self.stream_combobox)
 
         # button box
         button_layout = QVBoxLayout()
-        button_layout.addWidget(self.rtsp_url_lineedit)
+        button_layout.addLayout(stream_combobox_layout)
         button_layout.addLayout(video_button_layout)
         button_layout.addLayout(control_button_layout)
         button_layout.addLayout(ai_checkbox_layout)
@@ -78,10 +84,12 @@ class MainWindow(QMainWindow):
         
         # --------------------------------------------------------
         self.rtsp_url = None
+        self.rtsp_stream = "/mystream_0"
         self.video_timer = QTimer()
         self.handle_buttons()
         self.handle_checkbox()
         self.handle_lineedit()
+        self.handle_combobox()
 
 
     def handle_buttons(self):
@@ -97,8 +105,11 @@ class MainWindow(QMainWindow):
         self.gesture_recognition_checkbox.stateChanged.connect(self.gesture_recognition_state_changed)
 
     def handle_lineedit(self):
-        self.rtsp_url_lineedit.returnPressed.connect(self.return_pressed)
-        self.rtsp_url_lineedit.textEdited.connect(self.text_edited)
+        self.rtsp_url_lineedit.returnPressed.connect(self.url_pressed)
+        self.rtsp_url_lineedit.textEdited.connect(self.url_edited)
+
+    def handle_combobox(self):
+        self.stream_combobox.currentIndexChanged.connect(self.stream_changed)
 
     def person_detect_state_changed(self, state):
         if state == 0:  # False
@@ -119,31 +130,12 @@ class MainWindow(QMainWindow):
     def video_stop(self):
         self.video_timer.stop()
     
-    def control_top(self):
-        print("control top clicked.")
-
-    def control_down(self):
-        print("control down clicked.")
-
-    def control_lift(self):
-        print("control lift clicked.")
-
-    def control_right(self):
-        print("control right clicked.")
-
-    def return_pressed(self):
-        print("Return pressed!")
-        self.rtsp_url_lineedit.setText(self.rtsp_url)
-        print(self.rtsp_url)
-        self.open_video()
-
-    def text_edited(self, text):
-        self.rtsp_url = text
-
     def open_video(self):
-        self.cap = cv.VideoCapture(self.rtsp_url)
+        rtsp_addr = self.rtsp_url + self.rtsp_stream
+        print("Will connect this rtsp stream: ", rtsp_addr)
+        self.cap = cv.VideoCapture(rtsp_addr)
         if not self.cap.isOpened():
-            print("Video Path Error!!!")
+            print("Can't open rtsp stream!!!")
 
     def video_play(self):
         ret, image = self.cap.read()
@@ -158,3 +150,41 @@ class MainWindow(QMainWindow):
         else:
             self.cap.release()
             self.video_timer.stop()
+
+    def control_top(self):
+        print("control top clicked.")
+
+    def control_down(self):
+        print("control down clicked.")
+
+    def control_lift(self):
+        print("control lift clicked.")
+
+    def control_right(self):
+        print("control right clicked.")
+
+    def url_pressed(self):
+        self.rtsp_url_lineedit.setText(self.rtsp_url)
+        self.open_video()
+
+    def url_edited(self, text):
+        self.rtsp_url = text
+
+    def stream_changed(self, index):
+        if index == 0:
+            self.rtsp_stream = "/mystream_0"
+            print(self.rtsp_stream)
+            if not self.rtsp_url == None:
+                self.open_video()
+        elif index == 1:
+            self.rtsp_stream = "/mystream_1"
+            print(self.rtsp_stream)
+            if not self.rtsp_url == None:
+                self.open_video()
+        elif index == 2:
+            self.rtsp_stream = "/mystream_2"
+            print(self.rtsp_stream)
+            if not self.rtsp_url == None:
+                self.open_video()
+        else:
+            pass
