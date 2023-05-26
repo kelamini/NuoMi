@@ -10,7 +10,7 @@ from math import ceil
 path=os.getcwd()
 model_path='./retinaface_mob.rknn'
 #cap = cv2.VideoCapture('./video/islandBenchmark.mp4')
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(2)
 img_path='./2.jpg'
 IMG_SIZE = 640
 
@@ -207,6 +207,11 @@ if __name__ == '__main__':
         boxs_conf = np.concatenate((boxes, conf, landms), -1)
         boxs_conf = filter_box(boxs_conf, 0.5, 0.45)
 
+        # print("anchors", anchors)
+        # print("boxes", boxes)
+
+        # print("conf", conf)
+        print("boxs_conf", len(boxs_conf))
         #画出人类框和5个人脸关键并保存图片
         if boxs_conf is not None:
             draw_img(boxs_conf, or_img)
