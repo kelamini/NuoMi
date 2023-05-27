@@ -1,4 +1,5 @@
 from threading import Thread, current_thread
+import numpy as np
 import time, os
 import cv2
 import multiprocessing
@@ -6,7 +7,11 @@ import psutil
 from human_track import human_track_thread
 from face_detec import face_detec_thread
 
-from sockets import Server, server_process
+from sockets import Server
+
+import ctypes
+
+#from multiprocessing import shared_memory
 # from video import videoProcess
 #facCap = cv2.VideoCapture(0)
 
@@ -15,88 +20,15 @@ swich_key = 0
 IP = "192.168.4.15"
 PORT = 8000
 
-# server = Server(IP, PORT)
 
-#cv2.namedWindow("facWin", cv2.WINDOW_AUTOSIZE)
-
-# def human_track_thread():
-
-#     # cv2.namedWindow("humWin", cv2.WINDOW_AUTOSIZE)
-
-#     while True:
-#         if (humCap.isOpened()):
-
-#             ret, humImg = humCap.read()
-
-#             # if swich_key == 0:
-#             if ret:
-#                 # cv2.imshow("humWin", humImg)
-#                 print("hum cat get")
-    
-#             if cv2.waitKey(1) & 0xFF == ord('q'):
-#                 break
-#         #print("this is human track \r\n")
-#         time.sleep(1)  
-#         # cv2.destroyALLWindows()  
-
-#     humCap.release()
-#     cv2.destroyALLWindows()
-        
-   
-
-# def face_detec_thread():
-
-    
-#     # cv2.namedWindow("facWin", cv2.WINDOW_AUTOSIZE)
-#     while True:
-#         if (facCap.isOpened()):
-
-#             ret, facImg = facCap.read()
-#             # if swich_key == 1:
-
-#             if ret:
-#                 cv2.imshow("facWin", facImg)
-#                 print("fac cat get")
-    
-#             if cv2.waitKey(1) & 0xFF == ord('w'):
-#                 break
-
-#         #print("this is face detec thread \r\n")
-#         time.sleep(1)
-        
-
-#     facCap.release()
-#     cv2.destroyALLWindows()
-#     # print("face thread end")
-
-# huaTraThread = Thread(target = human_track_thread)
-# facDetThread = Thread(target = face_detec_thread)
-
-# huaTraThread.start()
-# facDetThread.start()
-
-# huaTraThread.join()
-# facDetThread.join()
-
-
-
-
-# class VideoSwitch():
-#     def __init__(self) -> None:
-
-#         pass
-
-
-
-
-    # cmd = qCmd.get()
-        
 HUM_CAP_NUM = 0
 FAC_CAP_NUM = 2
 
-# video process
-def videoProcess(qCmd, qImg):
+server = Server()
 
+# video process
+# def videoProcess(lock, shareMemName, shape, dtype, event):
+def videoProcess(img_lock, buf, img_deal_lock, dbuf):
     # video init 
     huaCap = cv2.VideoCapture(HUM_CAP_NUM)
     facCap = cv2.VideoCapture(FAC_CAP_NUM)
@@ -114,14 +46,57 @@ def videoProcess(qCmd, qImg):
     # img = cv2.imread("./image/bus.jpg")
     pid = os.getpid()
     print("video process pid is ",pid)
-    cnt = 0
-    # img = [1,2,3,4,5]
+    
+    # img = [[[1, 2, 3], [0, 2, 0], [2, 2, 0], [3, 2,3,4], [3, 2,3,4]], [1,2]]
+    
     while True:
        
-        # send image data to queue
-        ret, img = huaCap.read()
+        # get lock
+        img_lock.acquire()
+        # buf = img
+
+        # send image data to process
+        ret, img = facCap.read()
+
+        # print(img)
         if ret:
-            qImg.put(img)
+            # qImg.put(img)
+            img = img.flatten(order='C')
+            temp = np.frombuffer(buf, dtype=np.uint8)
+            temp[:] = img
+            # print(img)
+            # print("video")
+        # print(len(img))
+        # buf = img
+        
+        # print(img)
+        
+        # print(buf)
+        # print("video process")
+        # if ret:
+        #     # shared_mem = shared_memory.SharedMemory(name=shareMemName)
+        #     # shared_array = np.ndarray(shape=shape, dtype=dtype, buffer= shared_mem.buf)
+        #     # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        #     # np.copyto(shared_array, img)
+        #     # shared_mem.close()
+
+        #     print(len(img))
+        #     buf = img
+            # print(np.shape(img))
+        # print(len(img))
+        # print(buf)
+        # print(img)
+    
+        
+        # print("sum is ", buf.size)
+        # print("video buf is", buf)
+        # release lock
+        img_lock.release()
+        time.sleep(0.03)
+        
+
+        # imgDeal = pLeft.recv()
+        # print(len(imgDeal))
             # print("send image ", img)
             # print("send len", len(img))
             # cnt += 1
@@ -132,7 +107,7 @@ def videoProcess(qCmd, qImg):
         # # send image data to queue
         # if ret:
         #     qImg.put(img)
-        #     print("send image")
+        #     # print("send image")
         # else:
         #     print("video process humCap is fail")
         # time.sleep(1)
@@ -162,9 +137,33 @@ if __name__ == '__main__':
 
     multiprocessing.set_start_method("fork")
 
-    # quenu
-    qImg = multiprocessing.Queue(0)
-    qCmd = multiprocessing.Queue()
+    # ctx = multiprocessing.get_context()
+    # event = ctx.Event()
+    # # 进程锁
+    imgLock = multiprocessing.Lock()
+    imgDLock = multiprocessing.Lock()
+    # y = np.ones((480,640,3))
+    # 共享内存
+    imgBuf = multiprocessing.Array(ctypes.c_uint8, 640*480*3, lock= False)
+    imgDBuf = multiprocessing.Array(ctypes.c_uint8, 640*480*3, lock= False)
+    # main_nparray = main_nparray.reshape(NUM_PROCESS, 10)
+
+    # print("share")
+    # dtype = np.uint8()
+    # shape = (480, 640, 3)
+    # shareMem = shared_memory.SharedMemory(create= True, size = int(np.prod(shape)*np.dtype(dtype).itemsize))
+    # shareMemName = shareMem.name()
+    # print("share end")
+    # print(imgBuf[:])
+    # imgDBuf = multiprocessing.Value(np.ones((480,640,3)))
+
+
+    # # quenu
+    # qImg = multiprocessing.Queue(0)
+    # qCmd = multiprocessing.Queue()
+
+    # pipe
+    #(pipe_left, pipe_right) = multiprocessing.Pipe(True)
 
     print('开始主进程。。。')
     # start = time.time()
@@ -183,13 +182,18 @@ if __name__ == '__main__':
     # videoThread.join()
 
     # img = cv2.imread("./image/bus.jpg")
-
-    videoProces = multiprocessing.Process(target=videoProcess, args = (qCmd, qImg))
+    # imgDBuf = 1
+    # videoProces = multiprocessing.Process(target=videoProcess, args = (lock, shareMemName,shape, dtype, event))
+    videoProces = multiprocessing.Process(target=videoProcess, args = (imgLock, imgBuf, imgDLock, imgDBuf,))
     videoProces.start()
 
+    time.sleep(0.1)
 
-    humProces = multiprocessing.Process(target=human_track_thread, args = (qImg,))
-    humProces.start()
+    # humProces = multiprocessing.Process(target=human_track_thread, args = (imgLock, imgBuf, imgDLock, imgDBuf))
+    # humProces.start()
+
+    facProces = multiprocessing.Process(target=face_detec_thread, args = (imgLock, imgBuf, imgDLock, imgDBuf,))
+    facProces.start()
 
     # videoProces.terminate()
 
@@ -205,21 +209,57 @@ if __name__ == '__main__':
     #     pool.apply_async(apply_test, [i])
     # print('主进程结束，耗时 %s' % (time.time() - start))
     
-
+    # 
+    # img[] = 0
+    time.sleep(2)
     while True:
+
+        
+        imgDLock.acquire()
+
+        image = np.frombuffer(imgDBuf, dtype=np.uint8).reshape(480, 640, 3)
+        
+
+
+        # cv2.imwrite("img.jpg", image)
+        
+        # print("data is ",imgDBuf[2])
+        imgDLock.release()
+        server.run(image)
         # qImg.put(img)
-        print("this is main process")
+        # data = pipe_right.recv()
+        # lock.acquire()
+        
+        # image = imgBuf
+        # image = np.frombuffer(imgBuf, dtype=np.uint8).reshape(480, 640, 3)
+        # # cv2.imshow(image)
+        # cv2.imwrite("img.jpg", image)
+        # print(image)
+        # print("len is ", len(imgBuf))
+       # print(imgBuf)
+        # shared_mem = shared_memory.SharedMemory(name=shareMemName)
+        # shared_array = np.ndarray(shape=shape, dtype=dtype, buffer= shared_mem.buf)
+        # img = cv2.cvtColor(shared_array, cv2.COLOR_RGB2BGR)
+        # cv2.imshow(img)
+
+        # shared_mem.close()
+
+        # cv2.imshow(imgBuf)
         # server_process()
         # data = qImg.get()
         # print("receive is ", data)
         # print("receive len", len(data))
-        # cv2.imwrite("img.jpg", data)
+        # print(imgBuf)
+        # cv2.imwrite("img.jpg", imgBuf)
         # print("len is ", len(data))
         # print(img.shape)
         # cv2.imshow("img", data)
         # print(img)
-        time.sleep(2)
-
+        
+       
+        # lock.release()
+        time.sleep(0.01)
+        print("this is main process")
     # 为了演示效果，这儿使用休眠方式
     # time.sleep(10)
 

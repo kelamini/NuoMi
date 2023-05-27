@@ -54,12 +54,12 @@ class FfmpegPublishRtsp:
         self.stream = streamrtsp
     
     def init_videocapture(self):
-        self.cap = cv.VideoCapture(2)
-        if not self.cap.isOpened():
-            raise Exception("Can't open video capture!!!")
-        self.fps = int(self.cap.get(cv.CAP_PROP_FPS))
-        self.width = int(self.cap.get(cv.CAP_PROP_FRAME_WIDTH))
-        self.height = int(self.cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+        # self.cap = cv.VideoCapture(2)
+        # if not self.cap.isOpened():
+        #     raise Exception("Can't open video capture!!!")
+        self.fps = 25#int(self.cap.get(cv.CAP_PROP_FPS))
+        self.width = 640#int(self.cap.get(cv.CAP_PROP_FRAME_WIDTH))
+        self.height = 480#int(self.cap.get(cv.CAP_PROP_FRAME_HEIGHT))
     
     def init_ffmpeg(self):
         command = [
@@ -90,11 +90,12 @@ class FfmpegPublishRtsp:
         ...
         return frame
     
-    def publish(self):
+    def publish(self, frame):
         start = time()
         while True:
-            ret, frame = self.cap.read()
-            if not ret:
+            # ret, frame = self.cap.read()
+
+            if frame is  None:
                 self.cap.release()
                 self.pipe.terminate()
                 raise Exception("Can't read frame!!!")
@@ -110,10 +111,10 @@ class FfmpegPublishRtsp:
             start = now
         
 
-    def run(self):
+    def run(self, img):
         self.init_videocapture()
         self.init_ffmpeg()
-        self.publish()
+        self.publish(img)
 
 
 if __name__ == "__main__":

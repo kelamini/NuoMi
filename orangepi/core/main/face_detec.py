@@ -63,6 +63,7 @@ def letterbox_image(image, size):
     new_image = np.ones([size[1], size[0], 3]) * 128
     new_image[(h-nh)//2:nh+(h-nh)//2, (w-nw)//2:nw+(w-nw)//2] = image
     return new_image
+    # return np.array(new_image, dtype=np.uint8)
 # 人脸框坐标解码
 def decode(loc, priors, variances):
     boxes = np.concatenate((priors[:, :2] + loc[:, :2] * variances[0] * priors[:, 2:],
@@ -90,6 +91,7 @@ def pynms(dets, thresh): #非极大抑制
     scores = dets[:, 4]
     keep = []
     index = scores.argsort()[::-1] #置信度从大到小排序（下标）
+
 
     while index.size > 0:
         i = index[0]
@@ -131,8 +133,12 @@ def procss_img(img):
     #img=cv2.imread(img_path)
 
     img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+   
+    # or_img=cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
     img=letterbox_image(img,(IMG_SIZE,IMG_SIZE))
     or_img=np.array(img,np.uint8)
+    
+    
     or_img=cv2.cvtColor(or_img,cv2.COLOR_RGB2BGR)
     img=img.astype(dtype=np.float32)
     img-=np.array((104,117,123),np.float32)
@@ -160,9 +166,9 @@ def draw_img(boxes_conf_landms,old_image):
     return old_image
 
 # if __name__ == '__main__':
-def face_detec_thread():
+def face_detec_thread(img_lock, buf, img_deal_lock, dbuf):
 
-    cap = cv2.VideoCapture(2)
+    # cap = cv2.VideoCapture(2)
     # # Create RKNN object
     rknn = RKNNLite()
 
@@ -181,14 +187,28 @@ def face_detec_thread():
     if ret != 0:
         exit(ret)
 
+    print("face process is ok")
     while True:
+
+        img_lock.acquire()
+        # ret, img = cap.read()
+        img = np.frombuffer(buf, dtype=np.uint8).reshape(480, 640, 3)
+        img_lock.release()
+
         
-        ret, img = cap.read()
+        
+            
 
-        if ret:
 
+        
+        
+
+        # print(img.shape)
+
+        if img is not None:
+            # print(img)
             img,or_img=procss_img(img)
-
+            # print(or_img)
             # Inference
             #print('--> Running model')
             start=time.time()
@@ -213,17 +233,40 @@ def face_detec_thread():
             boxs_conf = np.concatenate((boxes, conf, landms), -1)
             boxs_conf = filter_box(boxs_conf, 0.5, 0.45)
 
+
+            # print(type(or_img))
+            # print(or_img)
+            
             #画出人类框和5个人脸关键并保存图片
             if boxs_conf is not None:
                 draw_img(boxs_conf, or_img)
-                # print("face get")
-                #cv2.imwrite('./2_result.jpg',or_img)
-            print("boxs_len", len(boxs_conf))
+                img_deal_lock.acquire()
+               
+                
+                or_img = cv2.resize(or_img, (640, 480))
+                # print(or_img.shape)
+
+                or_img = or_img.flatten(order='C')
+                # data = np.array([1,2,3,4], dtype=np.uint8)
+                temp = np.frombuffer(dbuf, dtype=np.uint8)
+                temp[:] = or_img
+
+                img_deal_lock.release()
+                
+                
+               
+            # print("boxs_len", len(boxs_conf))
+
+            
+          
+
             # cv2.imshow('re', or_img)
             # if cv2.waitKey(1) & 0xFF == ord('q'):
             #     break
         else:
             print("face thread not image")
+        
+        
             
     # cv2.imshow('re', or_img)
     # cv2.waitKey(0)

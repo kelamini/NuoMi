@@ -131,6 +131,8 @@ def procss_img(img):
     #img=cv2.imread(img_path)
 
     img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+
+    # or_img=cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
     img=letterbox_image(img,(IMG_SIZE,IMG_SIZE))
     or_img=np.array(img,np.uint8)
     or_img=cv2.cvtColor(or_img,cv2.COLOR_RGB2BGR)
@@ -184,7 +186,7 @@ if __name__ == '__main__':
         ret, img = cap.read()
 
         img,or_img=procss_img(img)
-
+        # print(or_img)
         # Inference
         print('--> Running model')
         start=time.time()
@@ -212,10 +214,15 @@ if __name__ == '__main__':
 
         # print("conf", conf)
         print("boxs_conf", len(boxs_conf))
+        
+        # cv2.imshow()
         #画出人类框和5个人脸关键并保存图片
+        
         if boxs_conf is not None:
             draw_img(boxs_conf, or_img)
             #cv2.imwrite('./2_result.jpg',or_img)
+        print(or_img)
+        
         cv2.imshow('re', or_img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

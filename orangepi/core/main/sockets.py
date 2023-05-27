@@ -17,7 +17,7 @@ class Server:
         self.ip = ip
         self.point = point
         
-    def run(self):
+    def run(self, img):
         self.open_server()
         while True:
             self.listen_connection()
@@ -26,7 +26,7 @@ class Server:
             if optional_key == "mystream_0":
                 self.conn.send("True".encode("utf-8"))
                 publish_ffmpeg_frame = FfmpegPublishRtsp(urlrtsp=self.ip, portrtsp=8554, streamrtsp=optional_key)
-                publish_ffmpeg_frame.run()
+                publish_ffmpeg_frame.run(img)
             else:
                 print("Client send message is False!!!")
                 continue
@@ -139,22 +139,22 @@ class Client:
         self.client.close()
 
 
-server = Server("192.168.4.15", 8000)
-# server processing
-def server_process():
+# server = Server("192.168.4.15", 8000)
+# # server processing
+# def server_process():
     
-    server.open_server()
-    while True:
-        server.listen_connection()
-        optional_key = server.receive_message()
-        print("optional_key: ", optional_key)
-        if optional_key == "mystream_0":
-            server.conn.send("True".encode("utf-8"))
-            publish_ffmpeg_frame = FfmpegPublishRtsp(urlrtsp=server.ip, portrtsp=8554, streamrtsp=optional_key)
-            publish_ffmpeg_frame.run()
-        else:
-            print("Client send message is False!!!")
-            continue
+#     server.open_server()
+#     while True:
+#         server.listen_connection()
+#         optional_key = server.receive_message()
+#         print("optional_key: ", optional_key)
+#         if optional_key == "mystream_0":
+#             server.conn.send("True".encode("utf-8"))
+#             publish_ffmpeg_frame = FfmpegPublishRtsp(urlrtsp=server.ip, portrtsp=8554, streamrtsp=optional_key)
+#             publish_ffmpeg_frame.run()
+#         else:
+#             print("Client send message is False!!!")
+#             continue
     # while True:
     #     print("this is server process")
 
