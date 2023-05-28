@@ -13,7 +13,7 @@ from qtpy.QtCore import Qt, QTimer, QEventLoop
 from qtpy.QtGui import QPixmap, QImage, QTextCursor
 from qtpy.QtWidgets import (QMainWindow, QWidget, QPushButton, QLabel, QHBoxLayout, 
                             QVBoxLayout,QSpacerItem, QSizePolicy, QCheckBox, QLineEdit, 
-                            QComboBox, QTextBrowser)
+                            QComboBox, QTextBrowser, QGroupBox)
 
 
 class EmittingStr(QtCore.QObject):
@@ -32,9 +32,9 @@ class EmittingStr(QtCore.QObject):
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.resize(1176, 720)
+        self.resize(1296, 720)
         self.setStyleSheet("""
-                            background-color: #BBFFEE;
+                            background-color: #CCEEFF;
                             color: #000000;
                             font-family: Titillium;
                             font-size: 14px;
@@ -60,20 +60,15 @@ class MainWindow(QMainWindow):
         self.control_right_button = QPushButton("Right")
         
         # playing video's label
-        self.display_videos_label = QLabel("Display Videos")
+        self.display_videos_label = QLabel("智慧家居安防系统")
         self.display_videos_label.setScaledContents(True)
         self.display_videos_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.display_videos_label.setStyleSheet("""
-                                                background-color: #888888;
-                                                color: #FFFFFF;
+                                                background-color: #666666;
+                                                color: #CC0000;
                                                 font-family: Titillium;
-                                                font-size: 26px;
+                                                font-size: 32px;
                                                 """)
-        # explanatory label
-        self.functions_label = QLabel("Functions")
-
-        # debug label
-        self.debug_label = QLabel("Debug for engine")
 
         # checkbox
         self.person_detect_checkbox = QCheckBox("Person Detection and Track")
@@ -88,7 +83,7 @@ class MainWindow(QMainWindow):
         self.garbage_express_checkbox.setCheckState(Qt.CheckState.Unchecked)
 
         # lineedit
-        self.rtsp_url_lineedit = QLineEdit("RTSP URL: ")
+        self.rtsp_url_lineedit = QLineEdit()
         # self.rtsp_url_lineedit.setMaxLength(20)
         # self.rtsp_url_lineedit.setPlaceholderText("Enter rtsp url")
         self.rtsp_url_lineedit.setInputMask('rtsp://000.000.000.000:00000')
@@ -103,6 +98,9 @@ class MainWindow(QMainWindow):
         control_button_layout.addWidget(self.control_lift_button)
         control_button_layout.addWidget(self.control_right_button)
         control_button_layout.addWidget(self.control_down_button)
+        debug_groupbox = QGroupBox("Debug for Engine")
+        debug_groupbox.setLayout(control_button_layout)
+
         # ai checkbox
         ai_checkbox_layout = QVBoxLayout()
         ai_checkbox_layout.addWidget(self.person_detect_checkbox)
@@ -110,22 +108,24 @@ class MainWindow(QMainWindow):
         ai_checkbox_layout.addWidget(self.face_detection_checkbox)
         ai_checkbox_layout.addWidget(self.fire_smoke_checkbox)
         ai_checkbox_layout.addWidget(self.garbage_express_checkbox)
+        functions_groupbox = QGroupBox("Functions")
+        functions_groupbox.setLayout(ai_checkbox_layout)
 
         # video stream combobox
         stream_combobox_layout = QHBoxLayout()
-        stream_combobox_layout.addWidget(self.rtsp_url_lineedit, 3)
+        stream_combobox_layout.addWidget(self.rtsp_url_lineedit, 4)
         stream_combobox_layout.addWidget(self.stream_combobox, 2)
         stream_combobox_layout.addWidget(self.play_video_button, 1)
+        stream_groupbox = QGroupBox("RTSP")
+        stream_groupbox.setLayout(stream_combobox_layout)
 
         # button box
         button_layout = QVBoxLayout()
-        button_layout.addLayout(stream_combobox_layout, 1)
-        # button_layout.addWidget(self.functions_label)
-        button_layout.addLayout(ai_checkbox_layout, 1)
-        # button_layout.addWidget(self.debug_label)
-        button_layout.addLayout(control_button_layout, 1)
+        button_layout.addWidget(stream_groupbox, 1)
+        button_layout.addWidget(functions_groupbox, 1)
+        button_layout.addWidget(debug_groupbox, 1)
         # button_layout.addItem(self.spacerItem)
-        button_layout.addWidget(self.textBrowser)
+        button_layout.addWidget(self.textBrowser, 5)
 
         # global box
         global_layout = QHBoxLayout()
@@ -142,6 +142,7 @@ class MainWindow(QMainWindow):
         self.client = None
         self.rtsp_url = None
         self.rtsp_stream = None
+        self.cap = None
         self.video_timer = QTimer()
         self.handle_buttons()
         self.handle_checkbox()
@@ -165,8 +166,8 @@ class MainWindow(QMainWindow):
 
     def handle_checkbox(self):
         self.person_detect_checkbox.stateChanged.connect(self.person_detect_state_changed)
-        self.gesture_recognition_checkbox.stateChanged.connect(self.gesture_recognition_state_changed)
         self.face_detection_checkbox.stateChanged.connect(self.face_detection_state_changed)
+        self.gesture_recognition_checkbox.stateChanged.connect(self.gesture_recognition_state_changed)
         self.fire_smoke_checkbox.stateChanged.connect(self.fire_smoke_state_changed)
         self.garbage_express_checkbox.stateChanged.connect(self.garbage_express_state_changed)
 
@@ -177,165 +178,52 @@ class MainWindow(QMainWindow):
     def handle_combobox(self):
         self.stream_combobox.currentIndexChanged.connect(self.stream_changed)
 
+    def state_changed(self, state, message):
+        if state == 0:  # False
+            try:
+                self.client.open_client()
+                send_message = "_".join(['OFF', message])
+                print("==> Send messages: ", send_message)
+                self.client.send_message(send_message)
+                rece_message = self.client.receive_message()
+                print("==> Receive messages: ", rece_message)
+                self.client.close_client()
+                if rece_message.lower() == "true":
+                    print(f"Turn off functions to execute {message.replace('_', ' ')}.")
+                else:
+                    print(f"Can't close functions to execute {message.replace('_', ' ')}.")
+            except:
+                print("Ensure you allready connected a server.")
+        if state == 2:  # True
+            try:
+                self.client.open_client()
+                send_message = "_".join(['ON', message])
+                print("==> Send messages: ", send_message)
+                self.client.send_message(send_message)
+                rece_message = self.client.receive_message()
+                print("==> Receive messages: ", rece_message)
+                self.client.close_client()
+                if rece_message.lower() == "true":
+                    print(f"Turn on functions to execute {message.replace('_', ' ')}.")
+                else:
+                    print(f"Can't open functions to execute {message.replace('_', ' ')}.")
+            except:
+                print("Ensure you allready connected a server.")
+    
     def person_detect_state_changed(self, state):
-        if self.client == None:
-            print("You don't input rtsp url!")
-            return
-
-        if state == 0:  # False
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[0], self.message.obt_message("functions", 0)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn off functions to execute person detection.")
-            else:
-                print("Can't close functions to execute person detection.")
-        if state == 2:  # True
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[1], self.message.obt_message("functions", 0)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn on functions to execute person detection.")
-            else:
-                print("Can't open functions to execute person detection.")
-
-    def gesture_recognition_state_changed(self, state):
-        if self.client == None:
-            print("You don't input rtsp url!")
-            return
-
-        if state == 0:  # False
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[0], self.message.obt_message("functions", 2)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn off functions to execute gesture recognition.")
-            else:
-                print("Can't close functions to execute gesture recognition.")
-        if state == 2:  # True
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[1], self.message.obt_message("functions", 2)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn on functions to execute gesture recognition.")
-            else:
-                print("Can't open functions to execute gesture recognition.")
+        self.state_changed(state, self.message.obt_message("functions", 0))
 
     def face_detection_state_changed(self, state):
-        if self.client == None:
-            print("You don't input rtsp url!")
-            return
+        self.state_changed(state, self.message.obt_message("functions", 1))
 
-        if state == 0:  # False
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[0], self.message.obt_message("functions", 1)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn off functions to execute face detection.")
-            else:
-                print("Can't close functions to execute face detection.")
-        if state == 2:  # True
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[1], self.message.obt_message("functions", 1)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn on functions to execute face detection.")
-            else:
-                print("Can't open functions to execute face detection.")
+    def gesture_recognition_state_changed(self, state):
+        self.state_changed(state, self.message.obt_message("functions", 2))
 
     def fire_smoke_state_changed(self, state):
-        if self.client == None:
-            print("You don't input rtsp url!")
-            return
-
-        if state == 0:  # False
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[0], self.message.obt_message("functions", 3)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn off functions to execute fire-smoke detection.")
-            else:
-                print("Can't close functions to execute fire-smoke detection.")
-        if state == 2:  # True
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[1], self.message.obt_message("functions", 3)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn on functions to execute fire-smoke detection.")
-            else:
-                print("Can't open functions to execute fire-smoke detection.")
+        self.state_changed(state, self.message.obt_message("functions", 3))
 
     def garbage_express_state_changed(self, state):
-        if self.client == None:
-            print("You don't input rtsp url!")
-            return
-
-        if state == 0:  # False
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[0], self.message.obt_message("functions", 4)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn off functions to execute garbage-express recognition.")
-            else:
-                print("Can't close functions to execute garbage-express recognition.")
-        if state == 2:  # True
-            # print("person_detect_state_changed: ", state)
-            self.client.open_client()
-            send_message = "_".join([self.message.state[1], self.message.obt_message("functions", 4)])
-            print("==> Send messages: ", send_message)
-            self.client.send_message(send_message)
-            rece_message = self.client.receive_message()
-            print("==> Receive messages: ", rece_message)
-            self.client.close_client()
-            if rece_message.lower() == "true":
-                print("Turn on functions to execute garbage_express recognition.")
-            else:
-                print("Can't open functions to execute garbage_express recognition.")
+        self.state_changed(state, self.message.obt_message("functions", 4))
 
     def video_start(self):
         self.video_timer.start(10)
@@ -347,30 +235,35 @@ class MainWindow(QMainWindow):
     def open_video(self):
         rtsp_addr = self.rtsp_url + "/" + self.rtsp_stream
         print("Will connect this rtsp stream: ", rtsp_addr)
-        sleep(2)
-        self.cap = cv.VideoCapture(rtsp_addr)
-        if not self.cap.isOpened():
-            print("Can't open rtsp stream!!!")
-        # while True:
-        #     self.cap = cv.VideoCapture(rtsp_addr)
-        #     if not self.cap.isOpened():
-        #         print("Can't open rtsp stream!!!")
-        #     else:
-        #         print("Can open rtsp stream!")
-        #         break
+        # sleep(2)
+        # self.cap = cv.VideoCapture(rtsp_addr)
+        # if not self.cap.isOpened():
+        #     print("Can't open rtsp stream!!!")
+        while True:
+            self.cap = cv.VideoCapture(rtsp_addr)
+            if not self.cap.isOpened():
+                print("Can't open rtsp stream!!!")
+            else:
+                print("Can open rtsp stream!")
+                break
 
     def video_play(self):
-        ret, image = self.cap.read()
-        if ret:
-            if len(image.shape) == 3:
-                video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_BGR888)
-            elif len(image.shape) == 1:
-                video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Indexed8)
+        try:
+            ret, image = self.cap.read()
+            if ret:
+                if len(image.shape) == 3:
+                    video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_BGR888)
+                elif len(image.shape) == 1:
+                    video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Indexed8)
+                else:
+                    video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_BGR888)
+                self.display_videos_label.setPixmap(QPixmap(video_img))
             else:
-                video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_BGR888)
-            self.display_videos_label.setPixmap(QPixmap(video_img))
-        else:
-            self.cap.release()
+                self.cap.release()
+                self.video_timer.stop()
+
+        except:
+            print("Can't open rtsp stream!!!")
             self.video_timer.stop()
 
     def control_top(self):
@@ -386,25 +279,34 @@ class MainWindow(QMainWindow):
         print("control right clicked.")
 
     def url_pressed(self):
-        self.rtsp_url_lineedit.setText(self.rtsp_url)
-        self.client = Client(ip=self.rtsp_url.split("//")[-1].split(":")[0], point=8000)
-        self.client.open_client()
-        self.client.send_message("Tell me your push rtsp stream address.")
-        message = self.client.receive_message()
-        print("===> RTSP Address: ", message)
-        self.rtsp_stream = message
-        self.client.close_client()
-        if message.lower():
+        try:
             self.open_video()
-        else:
-            print("Can't open rtsp stream!!!")
+            print("First open rtsp stream: OK.")
+            return
+        except:
+            print("First open rtsp stream: Failed.")
+        try:
+            self.rtsp_url_lineedit.setText(self.rtsp_url)
+            self.client = Client(ip=self.rtsp_url.split("//")[-1].split(":")[0], point=8000)
+            self.client.open_client()
+            self.client.send_message("Tell me your push rtsp stream address.")
+            message = self.client.receive_message()
+            print("===> RTSP Address: ", message)
+            self.rtsp_stream = message
+            self.client.close_client()
+            if message.lower():
+                self.open_video()
+            else:
+                print("Can't open rtsp stream!!!")
+        except:
+            print("Can't connect the server: ", self.rtsp_url)
 
     def url_edited(self, text):
         self.rtsp_url = text
 
     def stream_changed(self, index):
         if index == 0:
-            if not self.rtsp_url == None:
+            try:
                 self.client.open_client()
                 self.client.send_message(self.message.obt_message("stream", index))
                 message = self.client.receive_message()
@@ -413,11 +315,11 @@ class MainWindow(QMainWindow):
                     self.open_video()
                 else:
                     print("Can't open rtsp stream!!!")
-            else:
-                print("You don't input rtsp url!")
+            except:
+                print("Ensure you allready connected a server.")
 
         elif index == 1:
-            if not self.rtsp_url == None:
+            try:
                 self.client.open_client()
                 self.client.send_message(self.message.obt_message("stream", index))
                 message = self.client.receive_message()
@@ -426,11 +328,11 @@ class MainWindow(QMainWindow):
                     self.open_video()
                 else:
                     print("Can't open rtsp stream!!!")
-            else:
-                print("You don't input rtsp url!")
+            except:
+                print("Ensure you allready connected a server.")
 
         elif index == 2:
-            if not self.rtsp_url == None:
+            try:
                 self.client.open_client()
                 self.client.send_message(self.message.obt_message("stream", index))
                 message = self.client.receive_message()
@@ -439,10 +341,11 @@ class MainWindow(QMainWindow):
                     self.open_video()
                 else:
                     print("Can't open rtsp stream!!!")
-            else:
-                print("You don't input rtsp url!")
+            except:
+                print("Ensure you allready connected a server.")
         else:
             pass
+
 
 class Message:
     def __init__(self):
@@ -453,12 +356,11 @@ class Message:
                 "fire_smoke", "garbage_express",
             ],
         }
-        self.state = ["OFF", "ON"]
 
     def append_message(self, message):
         self.messages.append(message)
 
-    def delete_message(self):
+    def pop_message(self):
         self.messages.pop()
 
     def obt_message(self, type, index):
