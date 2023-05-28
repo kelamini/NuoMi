@@ -16,20 +16,21 @@ class Server:
     def __init__(self, ip="192.168.4.15", point=8000):
         self.ip = ip
         self.point = point
-        
-    def run(self, img):
+        self.open_server()
+    def run(self):
         self.open_server()
         while True:
             self.listen_connection()
-            optional_key = self.receive_message()
-            # print("optional_key: ", optional_key)
-            if optional_key == "mystream_0":
-                self.conn.send("True".encode("utf-8"))
-                publish_ffmpeg_frame = FfmpegPublishRtsp(urlrtsp=self.ip, portrtsp=8554, streamrtsp=optional_key)
-                publish_ffmpeg_frame.run(img)
-            else:
-                print("Client send message is False!!!")
-                continue
+            self.optional_key = self.receive_message()
+            print("optional_key: ", self.optional_key)
+
+            # if optional_key == "mystream_0":
+            #     self.conn.send("True".encode("utf-8"))
+            #     publish_ffmpeg_frame = FfmpegPublishRtsp(urlrtsp=self.ip, portrtsp=8554, streamrtsp=optional_key)
+            #     publish_ffmpeg_frame.run(img)
+            # else:
+            #     print("Client send message is False!!!")
+            #     continue
 
     def open_server(self):
         try:
@@ -141,22 +142,98 @@ class Client:
 
 # server = Server("192.168.4.15", 8000)
 # # server processing
-# def server_process():
+
+#-------------------- sysFlag ------------------#
+            # | bit 15- 8  | bit 7-0   |
+            # | Model      | camare    |   
+            # | 0000 0000  | 0000 0000 |
+            # now using
+            #
+            # Camera
+            # bit 0  ->  Car_Manager    camId:0
+            # bit 1  ->  Door           camId:2
+            # bit 2  ->  Kitchen
+            #
+            # Model
+            # bit 8  ->  yolov5         human_track
+            # bit 9  ->  retinaface     face_detec
+
+
+SYS_FLAG_ON = 1
+SYS_FLAG_OFF = 0
+
+SYS_FLAG_BIT_CAM0 = 0
+SYS_FLAG_BIT_CAM1 = 1
+SYS_FLAG_BIT_CAM2 = 2
+
+SYS_FLAG_BIT_MODEL_HUM = 8
+SYS_FLAG_BIT_MODEL_FAC = 9
+SYS_FLAG_BIT_MODEL_GES = 10
+# system flag class
+class SysFlag:
+    def __init__(self, val=0x1):
+        # 0000 0000| 0000 0001
+        # Enable Cam0
+        self.flag = val
+        
+    def match(self, str):
+
+        # init
+        if str == "mystream_0":        
+            self.flag = 1
+
+        # person track
+        elif str == "ON_person_track":
+            self.flag = 2
+        elif str == "OFF_person_track":
+            self.flag = 1
+
+        # face
+        elif str == "ON_face_detection":
+            self.flag = 3
+        elif str == "OFF_face_detection":
+            self.flag = 1    
     
-#     server.open_server()
-#     while True:
-#         server.listen_connection()
-#         optional_key = server.receive_message()
-#         print("optional_key: ", optional_key)
-#         if optional_key == "mystream_0":
-#             server.conn.send("True".encode("utf-8"))
-#             publish_ffmpeg_frame = FfmpegPublishRtsp(urlrtsp=server.ip, portrtsp=8554, streamrtsp=optional_key)
-#             publish_ffmpeg_frame.run()
-#         else:
-#             print("Client send message is False!!!")
-#             continue
-    # while True:
-    #     print("this is server process")
+        
+    def setBit(self, bit, val):
+        if val:
+            self.flag |= 1 << bit
+        else:
+            self.flag &= 0 << bit
+        
+sysCtl = SysFlag()
+
+
+
+
+# server: server class
+def server_thread(server, even, ser_data):
+    
+    server.listen_connection()
+        
+    server.optional_key = server.receive_message()
+    
+    print("optional_key:", server.optional_key)
+    
+    if server.optional_key == "Tell me your push rtsp stream address.":
+        server.send_message("streamrtsp")
+        print("send massage")
+    even.set()
+
+    while True:
+        server.listen_connection()
+        
+        server.optional_key = server.receive_message()
+        
+        print("optional_key:", server.optional_key)
+        server.conn.send("True".encode("utf-8"))
+
+        sysCtl.match(server.optional_key)
+        ser_data.value = sysCtl.flag 
+        print("valus is ", sysCtl.flag)
+        # 设置even
+        even.set()
+        
 
 
 # if __name__ == "__main__":

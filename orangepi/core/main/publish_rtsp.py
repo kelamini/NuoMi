@@ -3,7 +3,7 @@ import os.path as osp
 import cv2 as cv
 from time import time, sleep
 import subprocess
-
+import numpy as np
 
 class GstreeamerPublishRtsp:
     def __init__(self, urlrtsp="127.0.0.1", portrtsp=8554):
@@ -48,10 +48,10 @@ class GstreeamerPublishRtsp:
 
 
 class FfmpegPublishRtsp:
-    def __init__(self, urlrtsp="192.168.4.15", portrtsp=8554, streamrtsp=None):
+    def __init__(self, urlrtsp="192.168.4.15", portrtsp=8554):
         self.url = urlrtsp
         self.port = portrtsp
-        self.stream = streamrtsp
+        self.stream = "streamrtsp"
     
     def init_videocapture(self):
         # self.cap = cv.VideoCapture(2)
@@ -117,9 +117,25 @@ class FfmpegPublishRtsp:
         self.publish(img)
 
 
-if __name__ == "__main__":
-    # publish_video = GstreeamerPublishRtsp()
-    # publish_video.run()
-    publish_ffmpeg_frame = FfmpegPublishRtsp()
-    publish_ffmpeg_frame.run()
+# pulish thread
+def pulish_thread(ip, imgDLock, imgDBuf, even):
+    while True:
+        print("this is pulish thread")
+        # wait even is set
+        even.wait()
+
+        imgDLock.acquire()
+        image = np.frombuffer(imgDBuf, dtype=np.uint8).reshape(480, 640, 3)
+        imgDLock.release()
+
+        # server.conn.send("True".encode("utf-8"))
+        publish_ffmpeg_frame = FfmpegPublishRtsp(ip, portrtsp=8554)
+        publish_ffmpeg_frame.run(image)
+
+
+# if __name__ == "__main__":
+#     # publish_video = GstreeamerPublishRtsp()
+#     # publish_video.run()
+#     publish_ffmpeg_frame = FfmpegPublishRtsp()
+#     publish_ffmpeg_frame.run()
 

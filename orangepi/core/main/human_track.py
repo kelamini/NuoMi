@@ -36,16 +36,17 @@ pitPid = DeltaPID(PIT_DUTY_NOR, 0.15, 0.01, 0.01, 0.00)
 
 
 
-def human_track_thread(img_lock, buf, img_deal_lock, dbuf):
+def human_track_thread(img_lock, buf, img_deal_lock, dbuf, event):
 
     #cap = cv2.VideoCapture('./video/islandBenchmark.mp4')
     # cap = cv2.VideoCapture(num)
     
+    event.wait()
 
     print("this is human thread")
     modelPath = "./rknnModel/yolov5s.rknn"
     # 线程数, 增大可提高帧率
-    TPEs = 4
+    TPEs = 3
     # 初始化rknn池
     pool = rknnPoolExecutor(
         rknnModel=modelPath,
@@ -82,10 +83,12 @@ def human_track_thread(img_lock, buf, img_deal_lock, dbuf):
 
     # lock.release()
     while True:
+        event.wait()
 
         img_lock.acquire()
-    # while (cap.isOpened()):
+    
         frame = np.frombuffer(buf, dtype=np.uint8).reshape(480, 640, 3)
+        # print("frame shape is ", frame.shape)
         img_lock.release()
         # print(len(frame))
         # print(cv2.shape(frame))
@@ -161,14 +164,21 @@ def human_track_thread(img_lock, buf, img_deal_lock, dbuf):
                 
             loopTime = time.time()
 
-            # img_deal_lock.acquire()
-            # # img = img.reshape(640, 640, 3)
-            # # print(img.reshape)
-            # img = img.flatten(order='C')
-            # temp = np.frombuffer(dbuf, dtype=np.uint8)
-            # temp[:] = img
 
-            # img_deal_lock.release()
+            ############# write deal image ###############
+            img_deal_lock.acquire()
+            
+            # print(img.shape)
+            img = cv2.resize(img, (640, 480))
+            img = img.flatten(order='C')
+            temp = np.frombuffer(dbuf, dtype=np.uint8)
+            temp[:] = img
+
+            img_deal_lock.release()
+
+
+
+
 
             # pip right send image
             # pRight.send(img)
@@ -179,9 +189,8 @@ def human_track_thread(img_lock, buf, img_deal_lock, dbuf):
                 # print("this human thead")
         else:
             print("human thread not image")
-        # lock.release()
 
-        # img_lock.release()
+       
     print("总平均帧率\t", frames / (time.time() - initTime))
     # 释放cap和rknn线程池
     # cap.release()

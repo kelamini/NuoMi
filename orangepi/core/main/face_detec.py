@@ -166,10 +166,11 @@ def draw_img(boxes_conf_landms,old_image):
     return old_image
 
 # if __name__ == '__main__':
-def face_detec_thread(img_lock, buf, img_deal_lock, dbuf):
+def face_detec_thread(img_lock, buf, img_deal_lock, dbuf, event):
 
     # cap = cv2.VideoCapture(2)
     # # Create RKNN object
+    event.wait()
     rknn = RKNNLite()
 
     # Load rknn model
@@ -190,21 +191,14 @@ def face_detec_thread(img_lock, buf, img_deal_lock, dbuf):
     print("face process is ok")
     while True:
 
+        event.wait()
+
+        # get data
         img_lock.acquire()
-        # ret, img = cap.read()
         img = np.frombuffer(buf, dtype=np.uint8).reshape(480, 640, 3)
         img_lock.release()
 
         
-        
-            
-
-
-        
-        
-
-        # print(img.shape)
-
         if img is not None:
             # print(img)
             img,or_img=procss_img(img)
@@ -227,27 +221,26 @@ def face_detec_thread(img_lock, buf, img_deal_lock, dbuf):
             landms = decode_landm(output_3, anchors, cfg_mnet['variance'])
             conf = output_2[:, 1:2]
 
-            
-
             #非极大抑制，得到最终输出
             boxs_conf = np.concatenate((boxes, conf, landms), -1)
             boxs_conf = filter_box(boxs_conf, 0.5, 0.45)
-
 
             # print(type(or_img))
             # print(or_img)
             
             #画出人类框和5个人脸关键并保存图片
             if boxs_conf is not None:
+
                 draw_img(boxs_conf, or_img)
+
+
+                # write deal image
                 img_deal_lock.acquire()
                
-                
                 or_img = cv2.resize(or_img, (640, 480))
                 # print(or_img.shape)
 
                 or_img = or_img.flatten(order='C')
-                # data = np.array([1,2,3,4], dtype=np.uint8)
                 temp = np.frombuffer(dbuf, dtype=np.uint8)
                 temp[:] = or_img
 
@@ -255,7 +248,7 @@ def face_detec_thread(img_lock, buf, img_deal_lock, dbuf):
                 
                 
                
-            # print("boxs_len", len(boxs_conf))
+            print("boxs_len", len(boxs_conf))
 
             
           
