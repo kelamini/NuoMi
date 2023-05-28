@@ -21,16 +21,21 @@ class MainWindow(QMainWindow):
         
         # button
         self.play_video_button = QPushButton("Play")
-        self.unplay_video_button = QPushButton("Unplay")
+        # self.unplay_video_button = QPushButton("Unplay")
         self.control_top_button = QPushButton("Top")
         self.control_down_button = QPushButton("Down")
         self.control_lift_button = QPushButton("Lift")
         self.control_right_button = QPushButton("Right")
         
         # playing video's label
-        self.videos_label = QLabel("Display Videos")
-        self.videos_label.setScaledContents(True)
-        self.videos_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.display_videos_label = QLabel("Display Videos")
+        self.display_videos_label.setScaledContents(True)
+        self.display_videos_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # explanatory label
+        self.functions_label = QLabel("Functions")
+
+        # debug label
+        self.debug_label = QLabel("Debug for engine")
 
         # checkbox
         self.person_detect_checkbox = QCheckBox("person detection")
@@ -48,10 +53,6 @@ class MainWindow(QMainWindow):
         combobox_value_list = ["Living Room", "Kitchen", "Out Door"]
         self.stream_combobox.addItems(combobox_value_list)
 
-        # video button
-        video_button_layout = QHBoxLayout()
-        video_button_layout.addWidget(self.play_video_button)
-        video_button_layout.addWidget(self.unplay_video_button)
         # control button
         control_button_layout = QHBoxLayout()
         control_button_layout.addWidget(self.control_top_button)
@@ -64,20 +65,22 @@ class MainWindow(QMainWindow):
         ai_checkbox_layout.addWidget(self.gesture_recognition_checkbox)
         # video stream combobox
         stream_combobox_layout = QHBoxLayout()
-        stream_combobox_layout.addWidget(self.rtsp_url_lineedit)
-        stream_combobox_layout.addWidget(self.stream_combobox)
+        stream_combobox_layout.addWidget(self.rtsp_url_lineedit, 3)
+        stream_combobox_layout.addWidget(self.stream_combobox, 2)
+        stream_combobox_layout.addWidget(self.play_video_button, 1)
 
         # button box
         button_layout = QVBoxLayout()
         button_layout.addLayout(stream_combobox_layout)
-        button_layout.addLayout(video_button_layout)
-        button_layout.addLayout(control_button_layout)
+        # button_layout.addWidget(self.functions_label)
         button_layout.addLayout(ai_checkbox_layout)
+        # button_layout.addWidget(self.debug_label)
+        button_layout.addLayout(control_button_layout)
         button_layout.addItem(self.spacerItem)
 
         # global box
         global_layout = QHBoxLayout()
-        global_layout.addWidget(self.videos_label, 5)
+        global_layout.addWidget(self.display_videos_label, 5)
         global_layout.addLayout(button_layout, 1)
         
         # mainwindow widget
@@ -97,7 +100,7 @@ class MainWindow(QMainWindow):
 
     def handle_buttons(self):
         self.play_video_button.clicked.connect(self.video_start)
-        self.unplay_video_button.clicked.connect(self.video_stop)
+        # self.unplay_video_button.clicked.connect(self.video_stop)
         self.control_top_button.clicked.connect(self.control_top)
         self.control_down_button.clicked.connect(self.control_down)
         self.control_lift_button.clicked.connect(self.control_lift)
@@ -130,13 +133,13 @@ class MainWindow(QMainWindow):
         self.video_timer.start(10)
         self.video_timer.timeout.connect(self.video_play)
         
-    def video_stop(self):
-        self.video_timer.stop()
+    # def video_stop(self):
+    #     self.video_timer.stop()
     
     def open_video(self):
         rtsp_addr = self.rtsp_url + "/" + self.rtsp_stream
         print("Will connect this rtsp stream: ", rtsp_addr)
-        sleep(5)
+        sleep(2)
         self.cap = cv.VideoCapture(rtsp_addr)
         if not self.cap.isOpened():
             print("Can't open rtsp stream!!!")
@@ -150,7 +153,7 @@ class MainWindow(QMainWindow):
                 video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Indexed8)
             else:
                 video_img = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_BGR888)
-            self.videos_label.setPixmap(QPixmap(video_img))
+            self.display_videos_label.setPixmap(QPixmap(video_img))
         else:
             self.cap.release()
             self.video_timer.stop()
