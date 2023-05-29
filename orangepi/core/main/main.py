@@ -13,6 +13,7 @@ from sockets import Server
 from publish_rtsp import FfmpegPublishRtsp
 from sockets import server_thread
 from publish_rtsp import pulish_thread
+from gesture import gesThread
 
 #from multiprocessing import shared_memory
 # from video import videoProcess
@@ -62,31 +63,57 @@ class VideoProcess:
   
     
     # process run
-    def run(self, img_lock, buf, img_deal_lock, dbuf, server_data, eHum, eFace):
+    def run(self,
+            img_lock,
+            buf, 
+            img_deal_lock, 
+            dbuf, 
+            server_data, 
+            eHum,
+            eFace,
+            eGes):
+        
         while(True):
 
             val = server_data.value
             if val == 1: 
 
-                eHum.clear()
-                eFace.clear()
+                # eHum.clear()
+                # eFace.clear()
+                # eGes.clear()
 
+                # # send image data to process
+                # ret, img = self.humCap.read()
+
+                # # image is ok
+                # if ret:
+                #     img_deal_lock.acquire()
+                #     # img = cv2.resize(img, (640, 480))
+                #     img = img.flatten(order='C')
+                #     temp = np.frombuffer(dbuf, dtype=np.uint8)
+                #     temp[:] = img
+                #     img_deal_lock.release()
+
+            
                 # send image data to process
-                ret, img = self.humCap.read()
-
-                # image is ok
+                ret, img = self.facCap.read()
                 if ret:
-                    img_deal_lock.acquire()
+                    img_lock.acquire()
                     # img = cv2.resize(img, (640, 480))
                     img = img.flatten(order='C')
-                    temp = np.frombuffer(dbuf, dtype=np.uint8)
+                    temp = np.frombuffer(buf, dtype=np.uint8)
                     temp[:] = img
-                    img_deal_lock.release()
+                    img_lock.release()
+
+                eHum.clear()
+                eFace.clear()
+                eGes.set()
 
             elif val == 2:
 
                 eHum.set()
                 eFace.clear()
+                eGes.clear()
 
                 # send image data to process
                 ret, img = self.humCap.read()
@@ -97,9 +124,11 @@ class VideoProcess:
                     temp = np.frombuffer(buf, dtype=np.uint8)
                     temp[:] = img
                     img_lock.release()
-            elif val ==3 :
+            elif val == 3 :
+
                 eHum.clear()
                 eFace.set()
+                eGes.clear()
 
                 # send image data to process
                 ret, img = self.facCap.read()
@@ -111,39 +140,30 @@ class VideoProcess:
                     temp[:] = img
                     img_lock.release()
 
+            elif val == 4:
+
+                eHum.clear()
+                eFace.clear()
+                eGes.set()
+
+                # send image data to process
+                ret, img = self.facCap.read()
+                if ret:
+                    img_lock.acquire()
+                    # img = cv2.resize(img, (640, 480))
+                    img = img.flatten(order='C')
+                    temp = np.frombuffer(buf, dtype=np.uint8)
+                    temp[:] = img
+                    img_lock.release()
+                
+
             time.sleep(0.01)
 
-                    # img_lock.acquire()
-                    # img = img.flatten(order='C')
-                    # temp = np.frombuffer(buf, dtype=np.uint8)
-                    # temp[:] = img
-                    # img_lock.release()
 
-                     # write deal image
-
-
-
-# # func      : rtsp thread
-# # server    : server class
-# # img       : image    
-# #
-# def rtspThread(server, img):
-#     while True:
-#         optional_key = 1
-#         if optional_key == "mystream_0":
-#             server.conn.send("True".encode("utf-8"))
-#             publish_ffmpeg_frame = FfmpegPublishRtsp(urlrtsp=server.ip, portrtsp=8554, streamrtsp=optional_key)
-#             publish_ffmpeg_frame.run(img)
-#         else:
-#             print("Client send message is False!!!")
-
-
-# # func      : server thread
-# # server    : server class
-# def serverThread(server):
-#     server.run()
-
-
+def processFuc(num):
+    while True:
+        print("this is Process ", num)
+        time.sleep(0.01)
 
 if __name__ == '__main__':
 
@@ -157,6 +177,7 @@ if __name__ == '__main__':
     # 进程事件
     eHum = multiprocessing.Event()
     eFace = multiprocessing.Event()
+    eGes = multiprocessing.Event()
     serEvent = multiprocessing.Event()
 
     eHum.clear()
@@ -169,13 +190,11 @@ if __name__ == '__main__':
     serData = multiprocessing.Manager().Value(ctypes.c_int, 1)
 
 
-    print('开始主进程。。。')
-
-
+    #------------------------------  Process  ----------------------------#
     video = VideoProcess(HUM_CAP_NUM, FAC_CAP_NUM)
     
 
-    videoProces = multiprocessing.Process(target=video.run, args = (imgLock, imgBuf, imgDLock, imgDBuf, serData, eHum, eFace))
+    videoProces = multiprocessing.Process(target=video.run, args = (imgLock, imgBuf, imgDLock, imgDBuf, serData, eHum, eFace, eGes))
     videoProces.start()
 
     time.sleep(0.1)
@@ -186,7 +205,8 @@ if __name__ == '__main__':
     facProces = multiprocessing.Process(target=face_detec_thread, args = (imgLock, imgBuf, imgDLock, imgDBuf,eFace,))
     facProces.start()
 
-   
+    gesProces = multiprocessing.Process(target=gesThread, args = (imgLock, imgBuf, imgDLock, imgDBuf,eGes,))
+    gesProces.start()
 
 
     pulThread =  multiprocessing.Process(target=pulish_thread, args= (IP, imgDLock, imgDBuf, serEvent))
@@ -195,24 +215,35 @@ if __name__ == '__main__':
 
     serThread = multiprocessing.Process(target=server_thread, args= (server, serEvent, serData))
     serThread.start()
-    #创建两个线程
-    # serThread = threading.Thread(target=server_thread, args= (server, serEvent, serData))
-    # pulThread = threading.Thread(target=pulish_thread, args= (server, imgDLock, imgDBuf, serEvent))
 
-    # # 启动线程
-    # serThread.start()
-    # pulThread.start()
+    # process1 = multiprocessing.Process(target=processFuc, args= (1,))
+    # process1.start()
 
-    # # 等待线程结束
-    # serThread.join()
-    # pulThread.join()
+    # process2 = multiprocessing.Process(target=processFuc, args= (2,))
+    # process2.start()
+
+    # process3 = multiprocessing.Process(target=processFuc, args= (3,))
+    # process3.start()
+
+    # process4 = multiprocessing.Process(target=processFuc, args= (4,))
+    # process4.start()
+
+    # process5 = multiprocessing.Process(target=processFuc, args= (5,))
+    # process5.start()
+
+    # process6 = multiprocessing.Process(target=processFuc, args= (6,))
+    # process6.start()
+
+    # process7 = multiprocessing.Process(target=processFuc, args= (7,))
+    # process7.start()
+
+    # process8 = multiprocessing.Process(target=processFuc, args= (8,))
+    # process8.start()
 
    
 
-    # videoProces.terminate()
-
-    print("videoProce", videoProces.is_alive())
-    print("humProce", humProces.is_alive())
+    # print("videoProce", videoProces.is_alive())
+    # print("humProce", humProces.is_alive())
 
     while True:
         time.sleep(1)

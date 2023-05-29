@@ -13,6 +13,9 @@ CLASSES = ("person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "trai
            "oven ", "toaster", "sink", "refrigerator ", "book", "clock", "vase", "scissors ", "teddy bear ", "hair drier", "toothbrush ")
 
 
+GES_CLASSES = ("A", "number 7", "D", "I", "L",  "V", "W", "Y", "I love you", "number 5")
+
+
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
@@ -170,6 +173,18 @@ def draw(image, boxes, scores, classes):
                     (top, left - 6),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.6, (0, 0, 255), 2)
+def ges_draw(image, boxes, scores, classes):
+    for box, score, cl in zip(boxes, scores, classes):
+        top, left, right, bottom = box
+        
+        top = int(top)
+        left = int(left)
+
+        cv2.rectangle(image, (top, left), (int(right), int(bottom)), (255, 0, 0), 2)
+        cv2.putText(image, '{0} {1:.2f}'.format(GES_CLASSES[cl], score),
+                    (top, left - 6),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (0, 0, 255), 2)
 
 def myFunc(rknn_lite, IMG):
     img = cv2.cvtColor(IMG, cv2.COLOR_BGR2RGB)
@@ -192,6 +207,27 @@ def myFunc(rknn_lite, IMG):
         draw(img_1, boxes, scores, classes)
     return img_1, boxes, classes, scores
     #return img_1
+
+def gesFunc(rknn_lite, IMG):
+    img = cv2.cvtColor(IMG, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
+    outputs = rknn_lite.inference(inputs=[img])
+
+    input0_data = outputs[0].reshape([3, -1]+list(outputs[0].shape[-2:]))
+    input1_data = outputs[1].reshape([3, -1]+list(outputs[1].shape[-2:]))
+    input2_data = outputs[2].reshape([3, -1]+list(outputs[2].shape[-2:]))
+
+    input_data = list()
+    input_data.append(np.transpose(input0_data, (2, 3, 0, 1)))
+    input_data.append(np.transpose(input1_data, (2, 3, 0, 1)))
+    input_data.append(np.transpose(input2_data, (2, 3, 0, 1)))
+
+    boxes, classes, scores = yolov5_post_process(input_data)
+
+    img_1 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    if boxes is not None:
+        ges_draw(img_1, boxes, scores, classes)
+    return img_1, boxes, classes, scores
 
 def findPeple(data):
     

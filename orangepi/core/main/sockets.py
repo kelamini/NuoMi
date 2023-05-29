@@ -192,7 +192,13 @@ class SysFlag:
         elif str == "ON_face_detection":
             self.flag = 3
         elif str == "OFF_face_detection":
-            self.flag = 1    
+            self.flag = 1   
+
+        # gesture
+        elif str == "ON_gesture_recognition":
+            self.flag = 4
+        elif str == "OFF_gesture_recognition":
+            self.flag = 1 
     
         
     def setBit(self, bit, val):
