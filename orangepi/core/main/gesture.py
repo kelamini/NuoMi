@@ -9,7 +9,7 @@ from arrayFuc import readImgFromArray, writeImgFromArray
 
 
 
-def gesThread(img_lock, buf, img_deal_lock, dbuf, event):
+def gesThread(img_cam0, img_ges, event):
 
     # 等待事件
     event.wait()
@@ -30,7 +30,7 @@ def gesThread(img_lock, buf, img_deal_lock, dbuf, event):
     # 初始化异步所需要的帧
     
     for i in range(TPEs + 1):
-        frame = readImgFromArray(img_lock, buf)
+        frame = img_cam0.read()
    
 
     frames, loopTime, initTime = 0, time.time(), time.time()
@@ -40,7 +40,7 @@ def gesThread(img_lock, buf, img_deal_lock, dbuf, event):
 
         event.wait()
         # read image
-        frame = readImgFromArray(img_lock, buf)
+        img_ges.read()
 
         frames += 1
         # print("this is gesture")
@@ -56,19 +56,20 @@ def gesThread(img_lock, buf, img_deal_lock, dbuf, event):
             img = retData[0]
     
             if frames % 30 == 0:
-            
+                print("this is gesture")
                 # print("gesture: 30帧平均帧率:\t", 30 / (time.time() - loopTime), "帧")
 
                 # print("img",retData[0])
-                print("gesture")
-                print("boxes",retData[1])
-                print("classes",retData[2])
-                print("scores",retData[3])
+                # print("gesture")
+                # print("boxes",retData[1])
+                # print("classes",retData[2])
+                # print("scores",retData[3])
                 
                 loopTime = time.time()
             
             # write deal image 
-            writeImgFromArray(img_deal_lock, dbuf, img)
+            img_ges.write(img)
+            event.clear()
             
 
     print("总平均帧率\t", frames / (time.time() - initTime))

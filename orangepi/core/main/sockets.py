@@ -172,6 +172,7 @@ SYS_FLAG_BIT_MODEL_GES = 10
 # system flag class
 class SysFlag:
     def __init__(self, val=0x1):
+        #   model  |   cam
         # 0000 0000| 0000 0001
         # Enable Cam0
         self.flag = val
@@ -179,33 +180,35 @@ class SysFlag:
     def match(self, str):
 
         # init
-        if str == "mystream_0":        
-            self.flag = 1
+        if str == "mystream_0": 
+            self.setBit(SYS_FLAG_BIT_CAM0, SYS_FLAG_ON)       
+            # self.flag = 1
 
         # person track
         elif str == "ON_person_track":
-            self.flag = 2
+            # self.flag = 2
+            self.setBit(SYS_FLAG_BIT_MODEL_HUM, SYS_FLAG_ON)
         elif str == "OFF_person_track":
-            self.flag = 1
+            self.setBit(SYS_FLAG_BIT_MODEL_HUM, SYS_FLAG_OFF)
 
         # face
         elif str == "ON_face_detection":
-            self.flag = 3
+            self.setBit(SYS_FLAG_BIT_MODEL_FAC, SYS_FLAG_ON)
         elif str == "OFF_face_detection":
-            self.flag = 1   
+            self.setBit(SYS_FLAG_BIT_MODEL_FAC, SYS_FLAG_OFF)  
 
         # gesture
         elif str == "ON_gesture_recognition":
-            self.flag = 4
+            self.setBit(SYS_FLAG_BIT_MODEL_GES, SYS_FLAG_ON)
         elif str == "OFF_gesture_recognition":
-            self.flag = 1 
+            self.setBit(SYS_FLAG_BIT_MODEL_GES, SYS_FLAG_OFF)
     
         
     def setBit(self, bit, val):
         if val:
             self.flag |= 1 << bit
         else:
-            self.flag &= 0 << bit
+            self.flag &= ~(1 << bit)
         
 sysCtl = SysFlag()
 
@@ -235,8 +238,9 @@ def server_thread(server, even, ser_data):
         server.conn.send("True".encode("utf-8"))
 
         sysCtl.match(server.optional_key)
+        # sysCtl.flag = 10
         ser_data.value = sysCtl.flag 
-        print("valus is ", sysCtl.flag)
+        # print("valus is ", bin(5))
         # 设置even
         even.set()
         

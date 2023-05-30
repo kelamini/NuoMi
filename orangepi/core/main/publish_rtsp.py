@@ -118,15 +118,13 @@ class FfmpegPublishRtsp:
 
 
 # pulish thread
-def pulish_thread(ip, imgDLock, imgDBuf, even):
+def pulish_thread(ip, img_ser, even):
     while True:
         print("this is pulish thread")
         # wait even is set
         even.wait()
 
-        imgDLock.acquire()
-        image = np.frombuffer(imgDBuf, dtype=np.uint8).reshape(480, 640, 3)
-        imgDLock.release()
+        image = img_ser.read()
 
         # server.conn.send("True".encode("utf-8"))
         publish_ffmpeg_frame = FfmpegPublishRtsp(ip, portrtsp=8554)

@@ -36,7 +36,7 @@ pitPid = DeltaPID(PIT_DUTY_NOR, 0.15, 0.01, 0.01, 0.00)
 
 
 
-def human_track_thread(img_lock, buf, img_deal_lock, dbuf, event):
+def human_track_thread(img_cam0, img_hum, event):
 
     #cap = cv2.VideoCapture('./video/islandBenchmark.mp4')
     # cap = cv2.VideoCapture(num)
@@ -53,25 +53,12 @@ def human_track_thread(img_lock, buf, img_deal_lock, dbuf, event):
         TPEs=TPEs,
         func=myFunc)
     print("human process rknn init is ok")
-    # 初始化异步所需要的帧
-   
-    # for i in range(TPEs + 1):
-    #     frame = np.frombuffer(buf, dtype=np.uint8).reshape(480, 640, 3)
-    #     pool.put(frame)
 
-    img_lock.acquire()
+    # 初始化异步所需要的帧
     for i in range(TPEs + 1):
-        frame = np.frombuffer(buf, dtype=np.uint8).reshape(480, 640, 3)
-    img_lock.release()
-    #     pool.put(frame)
-    # if (cap.isOpened()):
-    #     for i in range(TPEs + 1):
-    #         ret, frame = cap.read()
-    #         if not ret:
-    #             cap.release()
-    #             del pool
-    #             exit(-1)
-    #         pool.put(frame)
+        frame = img_cam0.read()
+    
+   
 
     frames, loopTime, initTime = 0, time.time(), time.time()
 
@@ -85,11 +72,7 @@ def human_track_thread(img_lock, buf, img_deal_lock, dbuf, event):
     while True:
         event.wait()
 
-        img_lock.acquire()
-    
-        frame = np.frombuffer(buf, dtype=np.uint8).reshape(480, 640, 3)
-        # print("frame shape is ", frame.shape)
-        img_lock.release()
+        img_cam0.read()
         # print(len(frame))
         # print(cv2.shape(frame))
         # frame = q.get()
@@ -146,9 +129,9 @@ def human_track_thread(img_lock, buf, img_deal_lock, dbuf, event):
                 
                 
             if frames % 30 == 0:
-
-                print("30帧平均帧率:\t", 30 / (time.time() - loopTime), "帧")
-                print("score", score)
+                print("this is gesture")
+                # print("30帧平均帧率:\t", 30 / (time.time() - loopTime), "帧")
+                # print("score", score)
                 
                 # print("x_pwm:", yawPid.cur_val)
                 # print("y_pwm:", pitPid.cur_val)
@@ -166,27 +149,10 @@ def human_track_thread(img_lock, buf, img_deal_lock, dbuf, event):
 
 
             ############# write deal image ###############
-            img_deal_lock.acquire()
-            
-            # print(img.shape)
-            img = cv2.resize(img, (640, 480))
-            img = img.flatten(order='C')
-            temp = np.frombuffer(dbuf, dtype=np.uint8)
-            temp[:] = img
+            img_hum.write(img)
+            event.clear()
 
-            img_deal_lock.release()
-
-
-
-
-
-            # pip right send image
-            # pRight.send(img)
-            # cv2.circle(img, (CENTER_X, CENTER_Y), 1, (0, 255, 0), 2)
-            # cv2.imshow('test', img)
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     break
-                # print("this human thead")
+           
         else:
             print("human thread not image")
 
