@@ -132,14 +132,18 @@ def filter_box(org_box,conf_thres,iou_thres): #过滤掉无用的框
 def procss_img(img):
     #img=cv2.imread(img_path)
 
+    # or_img = cv2.resize(img, (640, 640))
     img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
    
+    # or_img = img
     # or_img=cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
     img=letterbox_image(img,(IMG_SIZE,IMG_SIZE))
+
     or_img=np.array(img,np.uint8)
-    
-    
     or_img=cv2.cvtColor(or_img,cv2.COLOR_RGB2BGR)
+
+   
+
     img=img.astype(dtype=np.float32)
     img-=np.array((104,117,123),np.float32)
     # img = img.transpose(2, 0, 1)
@@ -166,7 +170,7 @@ def draw_img(boxes_conf_landms,old_image):
     return old_image
 
 # if __name__ == '__main__':
-def face_detec_thread(img_lock, buf, img_deal_lock, dbuf, event):
+def face_detec_thread(img_cam1, img_face ,event):
 
     # cap = cv2.VideoCapture(2)
     # # Create RKNN object
@@ -194,9 +198,7 @@ def face_detec_thread(img_lock, buf, img_deal_lock, dbuf, event):
         event.wait()
 
         # get data
-        img_lock.acquire()
-        img = np.frombuffer(buf, dtype=np.uint8).reshape(480, 640, 3)
-        img_lock.release()
+        img = img_cam1.read()
 
         
         if img is not None:
@@ -232,33 +234,17 @@ def face_detec_thread(img_lock, buf, img_deal_lock, dbuf, event):
             if boxs_conf is not None:
 
                 draw_img(boxs_conf, or_img)
-
-
                 # write deal image
-                img_deal_lock.acquire()
-               
-                or_img = cv2.resize(or_img, (640, 480))
-                # print(or_img.shape)
-
-                or_img = or_img.flatten(order='C')
-                temp = np.frombuffer(dbuf, dtype=np.uint8)
-                temp[:] = or_img
-
-                img_deal_lock.release()
+                img_face.write(or_img)    
                 
+
+                   
                 
                
-            print("boxs_len", len(boxs_conf))
-
-            
-          
-
-            # cv2.imshow('re', or_img)
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     break
+            print("boxs_len", len(boxs_conf))       
         else:
             print("face thread not image")
-        
+        event.clear()
         
             
     # cv2.imshow('re', or_img)

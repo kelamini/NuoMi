@@ -14,6 +14,7 @@ from publish_rtsp import FfmpegPublishRtsp
 from sockets import server_thread
 from publish_rtsp import pulish_thread
 from gesture import gesThread
+from fire import fireThread
 
 #from multiprocessing import shared_memory
 # from video import videoProcess
@@ -25,8 +26,9 @@ IP = "192.168.4.15"
 PORT = 8000
 
 
-CAP_NUM_0 = 0
+CAP_NUM_0 = 4
 CAP_NUM_1 = 2
+CAP_NUM_2 = 0
 
 # init server
 server = Server(IP, PORT)
@@ -39,35 +41,44 @@ def myReadBit(val, bit):
 
 
 class multiProSusRes():
-    def __init__(self, hum_pid, fac_pid, ges_pid):
+    def __init__(self, hum_pid, fac_pid, ges_pid, fir_pid):
         self.hum = psutil.Process(hum_pid)
-        # self.fac = psutil.Process(fac_pid)
+        self.fac = psutil.Process(fac_pid)
         self.ges = psutil.Process(ges_pid)
+        self.fir = psutil.Process(fir_pid)
     def susPro(self, str):
         if str == "hum":
             self.hum.suspend()
-        # elif str == "fac":
-        #     self.fac.suspend()
         elif str == "ges":
             self.ges.suspend()
+        elif str == "fac":
+            self.fac.suspend()
+        elif str == "fir":
+            self.fir.suspend()
+
     def resPro(self, str):
         if str == "hum":
             self.hum.resume()
-        # elif str == "fac":
-        #     self.fac.resume()
         elif str == "ges":
             self.ges.resume()
+        elif str == "fac":
+            self.fac.resume()
+        elif str == "fir":
+            self.fir.resume()
 
 # video process class
 class VideoProcess:
 
     # init
-    def __init__(self, cap_num_0, cap_num_1):
+    def __init__(self, cap_num_0, cap_num_1, cap_num_2, serve_buf, serve_val):
 
         # init video
         self.cap0 = cv2.VideoCapture(cap_num_0)
         self.cap1 = cv2.VideoCapture(cap_num_1)
-
+        self.cap2 = cv2.VideoCapture(cap_num_2)
+        self.serBuf = serve_buf
+        self.serVal = serve_val
+       
         # check 
         if self.cap0.isOpened():
             print("Cap0 init is ok")
@@ -81,198 +92,152 @@ class VideoProcess:
         else:
             print("Cap1 init is fail")
             sys.exit()
+
+        if self.cap2.isOpened():
+            print("Cap2 init is ok")
+            
+        else:
+            print("Cap2 init is fail")
+            sys.exit()
         
-        # get pid
-        self.pid = os.getpid()
-        print("video process pid is ", self.pid)
-  
-    
     # process run
-    def run(self,
-            multi_process,
-            img_cam0,
-            img_hum,
-            img_fac,
-            img_ges,
-            img_ser,
-            server_data, 
-            eHum,
-            eFace,
-            eGes):
+    def runCam0(self,
+                multi_process,
+                img_cam0,
+                img_hum,
+                img_ges,
+                eHum,
+                eGes):
         
         while(True):
 
-            val = server_data.value
-
-            # cam 0
-            #   model  |   cam
-            # 0000 0000| 0000 0001
-            #
-            # bit 0
-            # bit 1
-            # bit 2
-
-            # bit 8  human
-            # bit 9  face
-            # bit 10 ges
-
-            # get image 
-           
             ret0, imgCam0 = self.cap0.read() 
             # ret0, img0 = self.cap1.read() 
             
             if ret0:
                 # write image0
                 img_cam0.write(imgCam0)
+            
+            camSts = myReadBit(self.serVal.value, 0)
+            huaSts = myReadBit(self.serVal.value, 8)
+            gesSts = myReadBit(self.serVal.value, 10)
+            # print("val:", bin(self.serVal))
+            # print("camSts", camSts)
+            # print("huaSts", huaSts)
+            # print("gesSts", gesSts)
 
+            # both human and gesture
+            if huaSts and gesSts:
+                multi_process.resPro("hum")
+                multi_process.resPro("ges")
+                eHum.set()   
+                # eGes.set()
 
-            cam0Sts = myReadBit(val, 0)
+                while True:
+                    # human deal end
+                    if not eHum.is_set():
+                        break
+                img_deal = img_hum.read()
+                img_cam0.write(img_deal)
+                eGes.set()
 
-            huaSts = myReadBit(val, 8)
-            facSts = myReadBit(val, 9)
-            gesSts = myReadBit(val, 10)
-        
-            # # human
-            # if huaSts:
-            #     # open ehum event
-            #     eHum.set()      
+                imgDeal_g = img_ges.read()
 
-            # if facSts:
-            #     # open eface event
-            #     eFace.set() 
-
-            # if gesSts:
-            #     # open eges event
-            #     eGes.set()
-
-            # CAM0
-            if cam0Sts:
-               
-                # both human and gesture
-                if huaSts and gesSts:
-                    multi_process.resPro("hum")
-                    multi_process.resPro("ges")
-                    eHum.set()   
-                    # eGes.set()
-
-                    while True:
-                        # human deal end
-                        if not eHum.is_set():
-                            break
-                    img_deal = img_hum.read()
-                    img_cam0.write(img_deal)
-                    eGes.set()
-
-
-                    # while True:
-                    #     # human deal end
-                    #     if  not eGes.is_set():
-                    #         break
-                       
-                    # imgDeal_h = img_hum.read()
-                    # imgDeal_g = img_ges.read()
-
-                    # gray_imgCam0 = cv2.cvtColor(imgCam0, cv2.COLOR_BGR2GRAY)
-                    # gray_imgDeal_h = cv2.cvtColor(imgDeal_h, cv2.COLOR_BGR2GRAY)
-                    # gray_imgDeal_g = cv2.cvtColor(imgDeal_g, cv2.COLOR_BGR2GRAY)
-
-                    # diffImg_h = cv2.absdiff(imgDeal_h, imgCam0)
-
+                self.data2server(camSts, imgDeal_g)
                 
-                    # imgAdd = cv2.bitwise_and(imgDeal_g, diffImg_h, dst=None, mask=None)
-                    # imgAdd = cv2.addWeighted(imgDeal_g, 0.4,imgDeal_h, 0.6)
-                    # imgAdd = cv2.cvtColor(imgAdd, cv2.COLOR_GRAY2BGR)
-                    imgDeal_g = img_ges.read()
-                    img_ser.write(imgDeal_g)
-                    # print("both human ges")
-                # only human 
-                elif huaSts:
-                    multi_process.resPro("hum")
-                    multi_process.susPro("ges")
-                    eHum.set()   
+            # only human 
+            elif huaSts:
+                multi_process.resPro("hum")
+                multi_process.susPro("ges")
+                eHum.set()   
+                
+                imgDeal = img_hum.read()                  
+                self.data2server(camSts, imgDeal)
+                # print("only human")
+            # only gesture
+            elif gesSts: 
+                multi_process.susPro("hum")
+                multi_process.resPro("ges")
+                eGes.set() 
+
+                imgDeal = img_ges.read()
+                self.data2server(camSts, imgDeal)
+                # print("only gesture")
+            #none
+            else:
+                multi_process.susPro("hum")
+                multi_process.susPro("ges")
+                self.data2server(camSts, imgCam0) 
                    
-                    imgDeal = img_hum.read()                  
-                    img_ser.write(imgDeal)
-                    # print("only human")
-                # only gesture
-                elif gesSts: 
-                    multi_process.susPro("hum")
-                    multi_process.resPro("ges")
-                    eGes.set() 
+# process run
+    def runCam1(self,
+            multi_process,
+            img_cam1,
+            img_fac,
+            eFac,
+            ):
+        while(True):
+                               
+            ret, imgCam = self.cap1.read() 
+            
+            if ret:
+                # write image0
+                img_cam1.write(imgCam)
 
-                    imgDeal = img_ges.read()
-                    img_ser.write(imgDeal)
-                    # print("only gesture")
-                #none
-                else:
-                    multi_process.susPro("hum")
-                    multi_process.susPro("ges")
-                    img_ser.write(imgCam0)   
-                    
 
-            # if val == 1: 
+            camSts = myReadBit(self.serVal.value, 1)
+            facSts = myReadBit(self.serVal.value, 9)
+         
+            # both human and gesture
+            if facSts:
                 
-            #     eHum.clear()
-            #     eFace.clear()
-            #     eGes.clear()
+                multi_process.resPro("fac")
+                eFac.set()   
+                img_deal = img_fac.read()
+
+                self.data2server(camSts, img_deal)          
+            else:
                 
-            #     # send image data to process
-            #     ret, img = self.cap0.read()
+                multi_process.susPro("fac")
+                self.data2server(camSts, imgCam)
 
-            #     # image is ok
-            #     if ret:
-            #         img_ser.write(img)              
+    def runCam2(self,
+            multi_process,
+            img_cam2,
+            img_fir,
+            eFir,
+            ):
+        while(True):
+                               
+            ret, imgCam = self.cap2.read() 
+            
+            if ret:
+                # write image0
+                img_cam2.write(imgCam)
 
-            # elif val == 2:
 
-            #     eHum.set()
-            #     eFace.clear()
-            #     eGes.clear()
-
-            #     # send image data to process
-            #     ret, img = self.cap0.read()
-            #     if ret:
-            #         img_cam0.write(img)
-
-            #     img_hum_deal = img_hum.read()
-
-            #     # write image to server rtsp
-            #     img_ser.write(img_hum_deal)
-            # elif val == 3 :
-
-            #     eHum.clear()
-            #     eFace.set()
-            #     eGes.clear()
-
-            #     # send image data to process
-            #     ret, img = self.facCap.read()
-            #     if ret:
-            #         img_lock.acquire()
-            #         # img = cv2.resize(img, (640, 480))
-            #         img = img.flatten(order='C')
-            #         temp = np.frombuffer(buf, dtype=np.uint8)
-            #         temp[:] = img
-            #         img_lock.release()
-
-            # elif val == 4:
-
-            #     eHum.clear()
-            #     eFace.clear()
-            #     eGes.set()
-
-            #     # send image data to process
-            #     ret, img = self.facCap.read()
-            #     if ret:
-            #         img_lock.acquire()
-            #         # img = cv2.resize(img, (640, 480))
-            #         img = img.flatten(order='C')
-            #         temp = np.frombuffer(buf, dtype=np.uint8)
-            #         temp[:] = img
-            #         img_lock.release()
+            camSts = myReadBit(self.serVal.value, 2)
+            firSts = myReadBit(self.serVal.value, 11)
+            print("camsts", camSts)
+            # both human and gesture
+            if firSts:
                 
+                multi_process.resPro("fir")
+                eFir.set()   
+                img_deal = img_fir.read()
 
-            # time.sleep(0.01)
-
+                self.data2server(camSts, img_deal)          
+            else:
+                print("cam2 is ok")
+                print("camsts", )
+                multi_process.susPro("fir")
+                self.data2server(camSts, imgCam)
+                                    
+    def data2server(self, camSts, img):
+        if camSts:
+            self.serBuf.write(img)
+        
+        
 
 def processFuc(num):
     while True:
@@ -306,133 +271,120 @@ if __name__ == '__main__':
 
     # 共享内存
     imgCam0 = ArrayLockClass()
+    imgCam1 = ArrayLockClass()
+    imgCam2 = ArrayLockClass()
+
+    # imgCam0Deal = ArrayLockClass()
+    # imgCam1Deal = ArrayLockClass()
+    # imgCam2Deal = ArrayLockClass()
+
     imgHum = ArrayLockClass()
     imgFac = ArrayLockClass()
     imgGes = ArrayLockClass()
+    imgFir = ArrayLockClass()
     imgSer = ArrayLockClass()
-
-    # # 进程锁
-    # imgLock_rawCam0 = multiprocessing.Lock()
-    # imgLock_ser = multiprocessing.Lock()
-    # imgLock_hum = multiprocessing.Lock()
-    # imgLock_fac = multiprocessing.Lock()
 
     # 进程事件
     eHum = multiprocessing.Event()
     eFace = multiprocessing.Event()
     eGes = multiprocessing.Event()
-    serEvent = multiprocessing.Event()
+    eFir = multiprocessing.Event()
+    eSer = multiprocessing.Event()
 
 
     
     eHum.clear()
     eFace.clear()
-    serEvent.clear()
+    eGes.clear()
+    eFir.clear()
+    eSer.clear()
 
-    # eHum.set()
-    # eHum.wait()
-    # print(eHum.is_set())
-    # sys.exit()
-    # # 共享内存
-    # imgBuf_raw = multiprocessing.Array(ctypes.c_uint8, 640*480*3, lock= False)
-    # imgBuf_ser = multiprocessing.Array(ctypes.c_uint8, 640*480*3, lock= False)
-    # imgBuf_hum = multiprocessing.Array(ctypes.c_uint8, 640*480*3, lock= False)
-    # imgBuf_fac = multiprocessing.Array(ctypes.c_uint8, 640*480*3, lock= False)
     
-    serData = multiprocessing.Manager().Value(ctypes.c_int, 1)
+    serVal = multiprocessing.Manager().Value(ctypes.c_int, 0x01)
 
 
-   
 
     humProces = multiprocessing.Process(target=human_track_thread, args = (imgCam0, imgHum, eHum,))
-    # facProces = multiprocessing.Process(target=face_detec_thread, args = (imgLock_raw, imgBuf, imgDLock, imgDBuf,eFace,))
     gesProces = multiprocessing.Process(target=gesThread, args = (imgCam0, imgGes, eGes,))
+
+    facProces = multiprocessing.Process(target=face_detec_thread, args = (imgCam1, imgFac,eFace,))
+
+    firProces = multiprocessing.Process(target=fireThread, args = (imgCam2, imgFir, eFir,))
 
    
     humProces.start()
     gesProces.start()
-    # facProces.start()
-    
+    facProces.start()
+    firProces.start()
 
 
-    multiPro = multiProSusRes(humProces.pid, 
-                   0,
-                   gesProces.pid)
+    multiPro = multiProSusRes(  humProces.pid, 
+                                facProces.pid,
+                                gesProces.pid,
+                                firProces.pid)
 
      #------------------------------  Process  ----------------------------#
-    video = VideoProcess(CAP_NUM_0, CAP_NUM_1)
+    video = VideoProcess(CAP_NUM_0, CAP_NUM_1, CAP_NUM_2, imgSer, serVal)
     
 
-    videoProces = multiprocessing.Process(target=video.run, args = (multiPro,
-                                                                    imgCam0, 
-                                                                    imgHum, 
-                                                                    imgFac,
-                                                                    imgGes,
-                                                                    imgSer, 
-                                                                    serData, 
-                                                                    eHum, 
-                                                                    eFace, 
-                                                                    eGes))
-    videoProces.start()
+    cam0Proces = multiprocessing.Process(target=video.runCam0, args = (multiPro,
+                                                                        imgCam0, 
+                                                                        imgHum, 
+                                                                        imgGes,
+                                                                        eHum, 
+                                                                        eGes))
+    cam0Proces.start()
+
+    cam1Proces = multiprocessing.Process(target=video.runCam1, args = ( multiPro,
+                                                                        imgCam1, 
+                                                                        imgFac,  
+                                                                        eFace, 
+                                                                        ))
+    cam1Proces.start()
+
+    cam2Proces = multiprocessing.Process(target=video.runCam2, args = ( multiPro,
+                                                                        imgCam2, 
+                                                                        imgFir,  
+                                                                        eFir, 
+                                                                        ))
+    cam2Proces.start()
 
     time.sleep(0.1)
 
 
 
-    pulThread =  multiprocessing.Process(target=pulish_thread, args= (IP, imgSer, serEvent))
+    pulThread =  multiprocessing.Process(target=pulish_thread, args= (IP,
+                                                                      imgSer,
+                                                                      eSer))
     pulThread.start()
     
 
-    serThread = multiprocessing.Process(target=server_thread, args= (server, serEvent, serData))
+    serThread = multiprocessing.Process(target=server_thread, args= (server, eSer, serVal))
     serThread.start()
 
-
-    
-
-    # process1 = multiprocessing.Process(target=processFuc, args= (1,))
-    # process1.start()
-
-    # process2 = multiprocessing.Process(target=processFuc, args= (2,))
-    # process2.start()
-
-    # process3 = multiprocessing.Process(target=processFuc, args= (3,))
-    # process3.start()
-
-    # process4 = multiprocessing.Process(target=processFuc, args= (4,))
-    # process4.start()
-
-    # process5 = multiprocessing.Process(target=processFuc, args= (5,))
-    # process5.start()
-
-    # process6 = multiprocessing.Process(target=processFuc, args= (6,))
-    # process6.start()
-
-    # process7 = multiprocessing.Process(target=processFuc, args= (7,))
-    # process7.start()
-
-    # process8 = multiprocessing.Process(target=processFuc, args= (8,))
-    # process8.start()
-
-   
-
-    # print("videoProce", videoProces.is_alive())
-    # print("humProce", humProces.is_alive())
 
     while True:
         time.sleep(1)
         print("this is main process")
-        value = serData.value
+        value = serVal.value
 
         cam0Sts = myReadBit(value, 0)
+        cam1Sts = myReadBit(value, 1)
+        cam2Sts = myReadBit(value, 2)
+
 
         huaSts = myReadBit(value, 8)
         facSts = myReadBit(value, 9)
         gesSts = myReadBit(value, 10)
+        firSts = myReadBit(value, 11)
 
         print("cam0 sts", cam0Sts)
+        print("cam1 sts", cam1Sts)
+        print("cam2 sts", cam2Sts)
         print("human sts", huaSts)
         print("face sts", facSts)
         print("ges sts", gesSts)
+        print("fir sts", gesSts)
 
         # data = 0xff
         # print(bin(data))

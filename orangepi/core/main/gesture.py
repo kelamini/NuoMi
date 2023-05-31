@@ -9,7 +9,7 @@ from arrayFuc import readImgFromArray, writeImgFromArray
 
 
 
-def gesThread(img_cam0, img_ges, event):
+def gesThread(img_cam, img_ges, event):
 
     # 等待事件
     event.wait()
@@ -30,7 +30,7 @@ def gesThread(img_cam0, img_ges, event):
     # 初始化异步所需要的帧
     
     for i in range(TPEs + 1):
-        frame = img_cam0.read()
+        frame = img_cam.read()
    
 
     frames, loopTime, initTime = 0, time.time(), time.time()
@@ -40,7 +40,7 @@ def gesThread(img_cam0, img_ges, event):
 
         event.wait()
         # read image
-        img_ges.read()
+        img_cam.read()
 
         frames += 1
         # print("this is gesture")
@@ -62,8 +62,8 @@ def gesThread(img_cam0, img_ges, event):
                 # print("img",retData[0])
                 # print("gesture")
                 # print("boxes",retData[1])
-                # print("classes",retData[2])
-                # print("scores",retData[3])
+                print("classes",retData[2])
+                print("scores",retData[3])
                 
                 loopTime = time.time()
             

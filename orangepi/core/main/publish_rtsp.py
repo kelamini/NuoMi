@@ -117,15 +117,45 @@ class FfmpegPublishRtsp:
         self.publish(img)
 
 
+
+# val -> value
+# bit -> quary bit
+# return true or false
+def myReadBit(val, bit):
+    return (val >> bit)&1
+
 # pulish thread
 def pulish_thread(ip, img_ser, even):
     while True:
-        print("this is pulish thread")
+        
         # wait even is set
         even.wait()
 
-        image = img_ser.read()
+        print("this is pulish thread")
+        
+        # # cam0_sts = myReadBit(val, 0)
+        # # cam1_sts = myReadBit(val, 1)
+        # # cam2_sts = myReadBit(val, 2)
+        # val = server_data.value
+        # cam0_sts = myReadBit(val, 0)
+        # cam1_sts = myReadBit(val, 1)
+        # cam2_sts = myReadBit(val, 2)
+        # # cam0_sts = (val >> 0)&1
+        
+        # # cam1_sts = (val >> 1)&1
+        # # cam2_sts = (val >> 2)&1
 
+        # if cam0_sts:
+        #     print("\r\ncam0\r\n")
+        #     image_buf = cam0_deal
+        # elif cam1_sts:
+        #     print("\r\ncam1\r\n")
+        #     image_buf = cam1_deal
+        # elif cam2_sts:
+        #     print("\r\ncam2\r\n")
+        #     image_buf = cam2_deal
+
+        image = img_ser.read()
         # server.conn.send("True".encode("utf-8"))
         publish_ffmpeg_frame = FfmpegPublishRtsp(ip, portrtsp=8554)
         publish_ffmpeg_frame.run(image)

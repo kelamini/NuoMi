@@ -169,6 +169,7 @@ SYS_FLAG_BIT_CAM2 = 2
 SYS_FLAG_BIT_MODEL_HUM = 8
 SYS_FLAG_BIT_MODEL_FAC = 9
 SYS_FLAG_BIT_MODEL_GES = 10
+SYS_FLAG_BIT_MODEL_FIR = 11
 # system flag class
 class SysFlag:
     def __init__(self, val=0x1):
@@ -181,7 +182,17 @@ class SysFlag:
 
         # init
         if str == "mystream_0": 
-            self.setBit(SYS_FLAG_BIT_CAM0, SYS_FLAG_ON)       
+            self.setBit(SYS_FLAG_BIT_CAM0, SYS_FLAG_ON)  
+            self.setBit(SYS_FLAG_BIT_CAM1, SYS_FLAG_OFF)  
+            self.setBit(SYS_FLAG_BIT_CAM2, SYS_FLAG_OFF)   
+        elif str == "mystream_1": 
+            self.setBit(SYS_FLAG_BIT_CAM0, SYS_FLAG_OFF) 
+            self.setBit(SYS_FLAG_BIT_CAM1, SYS_FLAG_ON)  
+            self.setBit(SYS_FLAG_BIT_CAM2, SYS_FLAG_OFF)    
+        elif str == "mystream_2": 
+            self.setBit(SYS_FLAG_BIT_CAM0, SYS_FLAG_OFF) 
+            self.setBit(SYS_FLAG_BIT_CAM1, SYS_FLAG_OFF) 
+            self.setBit(SYS_FLAG_BIT_CAM2, SYS_FLAG_ON)     
             # self.flag = 1
 
         # person track
@@ -202,6 +213,12 @@ class SysFlag:
             self.setBit(SYS_FLAG_BIT_MODEL_GES, SYS_FLAG_ON)
         elif str == "OFF_gesture_recognition":
             self.setBit(SYS_FLAG_BIT_MODEL_GES, SYS_FLAG_OFF)
+
+        # fire
+        elif str == "ON_fire_smoke":
+            self.setBit(SYS_FLAG_BIT_MODEL_FIR, SYS_FLAG_ON)
+        elif str == "OFF_fire_smoke":
+            self.setBit(SYS_FLAG_BIT_MODEL_FIR, SYS_FLAG_OFF)
     
         
     def setBit(self, bit, val):

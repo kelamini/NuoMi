@@ -6,7 +6,7 @@ from func import myFunc
 from func import findPeple
 
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(4)
 modelPath = "./yolov5_gesture.rknn"
 
 # 线程数, 增大可提高帧率
