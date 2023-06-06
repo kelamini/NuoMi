@@ -60,14 +60,14 @@ class MainWindow(QMainWindow):
         self.control_right_button = QPushButton("Right")
         
         # playing video's label
-        self.display_videos_label = QLabel("智慧家居安防系统")
+        self.display_videos_label = QLabel("智慧家居安防系统\nAIOT")
         self.display_videos_label.setScaledContents(True)
         self.display_videos_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.display_videos_label.setStyleSheet("""
                                                 background-color: #666666;
                                                 color: #CC0000;
                                                 font-family: Titillium;
-                                                font-size: 32px;
+                                                font-size: 64px;
                                                 """)
 
         # checkbox
@@ -89,7 +89,7 @@ class MainWindow(QMainWindow):
         self.rtsp_url_lineedit.setInputMask('rtsp://000.000.000.000:00000')
         # combobox
         self.stream_combobox = QComboBox()
-        combobox_value_list = ["Living Room", "Kitchen", "Out Door"]
+        combobox_value_list = ["Living Room", "Out Door", "Kitchen"]
         self.stream_combobox.addItems(combobox_value_list)
 
         # control button
@@ -235,17 +235,20 @@ class MainWindow(QMainWindow):
     def open_video(self):
         rtsp_addr = self.rtsp_url + "/" + self.rtsp_stream
         print("Will connect this rtsp stream: ", rtsp_addr)
-        # sleep(2)
-        # self.cap = cv.VideoCapture(rtsp_addr)
-        # if not self.cap.isOpened():
-        #     print("Can't open rtsp stream!!!")
-        while True:
-            self.cap = cv.VideoCapture(rtsp_addr)
-            if not self.cap.isOpened():
-                print("Can't open rtsp stream!!!")
-            else:
-                print("Can open rtsp stream!")
-                break
+        sleep(1)
+        self.cap = cv.VideoCapture(rtsp_addr)
+        if not self.cap.isOpened():
+            print("Can't open rtsp stream!!!")
+        else:
+            print("Can open rtsp stream.")
+
+        # while True:
+        #     self.cap = cv.VideoCapture(rtsp_addr)
+        #     if not self.cap.isOpened():
+        #         print("Can't open rtsp stream!!!")
+        #     else:
+        #         print("Can open rtsp stream!")
+        #         break
 
     def video_play(self):
         try:
