@@ -2,14 +2,14 @@ import cv2
 import time
 from rknnpool import rknnPoolExecutor
 # 图像处理函数，实际应用过程中需要自行修改
-from func import gesFunc
+from func import gesFunc, getGesture
 import numpy as np
 
 from arrayFuc import readImgFromArray, writeImgFromArray 
 
 
 
-def gesThread(img_cam, img_ges, event):
+def gesThread(img_cam, img_ges, event, val):
 
     # 等待事件
     event.wait()
@@ -54,7 +54,13 @@ def gesThread(img_cam, img_ges, event):
 
             # 结果图片
             img = retData[0]
-    
+
+            # class
+           
+            # print("get gesture is ",  getGesture(retData))
+            val.value = getGesture(retData)
+            # print("")
+            
             if frames % 30 == 0:
                 print("this is gesture")
                 # print("gesture: 30帧平均帧率:\t", 30 / (time.time() - loopTime), "帧")

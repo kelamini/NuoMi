@@ -115,7 +115,8 @@ def human_track_thread(img_cam0, img_hum, event):
                     personSum_x = 0
                     personSum_y = 0
 
-                    cv2.circle(img, (person_x, person_y), 1, (0, 0, 255), 2)
+                    cv2.circle(img, (person_x, person_y), 4, (0, 0, 255), 2)
+                    cv2.circle(img, (CENTER_X, CENTER_Y), 4, (0, 255, 0), 2)
 
                     yawPid.calcalate(CENTER_X, imgCen_x)
                     pitPid.calcalate(imgCen_y, CENTER_Y)

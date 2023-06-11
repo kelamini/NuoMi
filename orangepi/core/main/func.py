@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 
-OBJ_THRESH, NMS_THRESH, IMG_SIZE = 0.5, 0.45, 640
+OBJ_THRESH, NMS_THRESH, IMG_SIZE = 0.5, 0.5, 640
 
 CLASSES = ("person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "train", "truck ", "boat", "traffic light",
            "fire hydrant", "stop sign ", "parking meter", "bench", "bird", "cat", "dog ", "horse ", "sheep", "cow", "elephant",
@@ -307,3 +307,29 @@ def findPeple(data):
 
     else:
         return False, False, False, False
+def getGesture(data):
+    
+    boxes, classes, scores = data[1],data[2],data[3]
+    cnt = 0
+    scor  = 0
+
+    # 检测到分类
+    if classes is not None:
+
+        #获取识别的物体数量
+        class_len = len(classes)
+
+        # 分数最高
+        maxScor = max(scores)
+
+        for i in range(class_len):
+            if(scores[i] == maxScor):
+                 # 返回最高的类别（0， 1，2，3）
+                 return classes[i]
+        
+       
+        #return classes[maxScor]
+    
+       
+    else:
+        return 11

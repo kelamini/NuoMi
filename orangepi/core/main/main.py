@@ -15,6 +15,7 @@ from sockets import server_thread
 from publish_rtsp import pulish_thread
 from gesture import gesThread
 from fire import fireThread
+from uart import uartThread
 
 #from multiprocessing import shared_memory
 # from video import videoProcess
@@ -22,7 +23,8 @@ from fire import fireThread
 
 swich_key = 0
 
-IP = "192.168.4.15"
+#IP = "192.168.4.15"
+IP = "192.168.124.56"
 PORT = 8000
 
 
@@ -218,7 +220,7 @@ class VideoProcess:
 
             camSts = myReadBit(self.serVal.value, 2)
             firSts = myReadBit(self.serVal.value, 11)
-            print("camsts", camSts)
+            # print("camsts", camSts)
             # both human and gesture
             if firSts:
                 
@@ -228,8 +230,8 @@ class VideoProcess:
 
                 self.data2server(camSts, img_deal)          
             else:
-                print("cam2 is ok")
-                print("camsts", )
+                # print("cam2 is ok")
+                # print("camsts", )
                 multi_process.susPro("fir")
                 self.data2server(camSts, imgCam)
                                     
@@ -302,10 +304,12 @@ if __name__ == '__main__':
     
     serVal = multiprocessing.Manager().Value(ctypes.c_int, 0x01)
 
+    # 手势值
+    gesVal = multiprocessing.Manager().Value(ctypes.c_int, 11)
 
 
     humProces = multiprocessing.Process(target=human_track_thread, args = (imgCam0, imgHum, eHum,))
-    gesProces = multiprocessing.Process(target=gesThread, args = (imgCam0, imgGes, eGes,))
+    gesProces = multiprocessing.Process(target=gesThread, args = (imgCam0, imgGes, eGes, gesVal,))
 
     facProces = multiprocessing.Process(target=face_detec_thread, args = (imgCam1, imgFac,eFace,))
 
@@ -351,7 +355,8 @@ if __name__ == '__main__':
 
     time.sleep(0.1)
 
-
+    uartProces = multiprocessing.Process(target = uartThread, args = ( gesVal,))
+    uartProces.start()
 
     pulThread =  multiprocessing.Process(target=pulish_thread, args= (IP,
                                                                       imgSer,
@@ -366,25 +371,25 @@ if __name__ == '__main__':
     while True:
         time.sleep(1)
         print("this is main process")
-        value = serVal.value
+        # value = serVal.value
 
-        cam0Sts = myReadBit(value, 0)
-        cam1Sts = myReadBit(value, 1)
-        cam2Sts = myReadBit(value, 2)
+        # cam0Sts = myReadBit(value, 0)
+        # cam1Sts = myReadBit(value, 1)
+        # cam2Sts = myReadBit(value, 2)
 
 
-        huaSts = myReadBit(value, 8)
-        facSts = myReadBit(value, 9)
-        gesSts = myReadBit(value, 10)
-        firSts = myReadBit(value, 11)
+        # huaSts = myReadBit(value, 8)
+        # facSts = myReadBit(value, 9)
+        # gesSts = myReadBit(value, 10)
+        # firSts = myReadBit(value, 11)
 
-        print("cam0 sts", cam0Sts)
-        print("cam1 sts", cam1Sts)
-        print("cam2 sts", cam2Sts)
-        print("human sts", huaSts)
-        print("face sts", facSts)
-        print("ges sts", gesSts)
-        print("fir sts", gesSts)
+        # print("cam0 sts", cam0Sts)
+        # print("cam1 sts", cam1Sts)
+        # print("cam2 sts", cam2Sts)
+        # print("human sts", huaSts)
+        # print("face sts", facSts)
+        # print("ges sts", gesSts)
+        # print("fir sts", gesSts)
 
         # data = 0xff
         # print(bin(data))
