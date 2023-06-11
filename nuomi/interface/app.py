@@ -2,22 +2,24 @@ import os
 import sys
 import os.path as osp
 from typing import Optional
-import PySide6.QtCore
 import cv2 as cv
+import sqlite3
 from time import time, sleep
 
 from utils import Client
+from dataManage import DataManageUI
+from dataRecord import DataRecordUI
 
-from qtpy import QtCore
-from qtpy.QtCore import Qt, QTimer, QEventLoop
-from qtpy.QtGui import QPixmap, QImage, QTextCursor
-from qtpy.QtWidgets import (QMainWindow, QWidget, QPushButton, QLabel, QHBoxLayout, 
+from PyQt5 import QtCore
+from PyQt5.QtCore import Qt, QTimer, QEventLoop
+from PyQt5.QtGui import QPixmap, QImage, QTextCursor
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QPushButton, QLabel, QHBoxLayout, 
                             QVBoxLayout,QSpacerItem, QSizePolicy, QCheckBox, QLineEdit, 
                             QComboBox, QTextBrowser, QGroupBox)
 
 
 class EmittingStr(QtCore.QObject):
-    textWritten = QtCore.Signal(str)
+    textWritten = QtCore.pyqtSignal(str)
     def write(self, text):
     #   text = f"({os.getcwd()})=> {text}\n"
       self.textWritten.emit(text)
@@ -27,6 +29,16 @@ class EmittingStr(QtCore.QObject):
 
     def flush(self):
         pass
+
+
+# 找不到已训练的人脸数据文件
+class TrainingDataNotFoundError(FileNotFoundError):
+    pass
+
+
+# 找不到数据库文件
+class DatabaseNotFoundError(FileNotFoundError):
+    pass
 
 
 class MainWindow(QMainWindow):
@@ -45,6 +57,7 @@ class MainWindow(QMainWindow):
         
         # textbrowser
         self.textBrowser = QTextBrowser()
+        
         # 输出重定向到 textbrowser
         sys.stdout = EmittingStr()
         sys.stdout.textWritten.connect(self.outputWritten)
@@ -54,6 +67,9 @@ class MainWindow(QMainWindow):
         # button
         self.play_video_button = QPushButton("Play")
         # self.unplay_video_button = QPushButton("Unplay")
+        self.add_face_button = QPushButton("Add Face")
+        self.manage_face_button = QPushButton("Manage Face")
+        self.database_button = QPushButton("Init Face Data")
         self.control_top_button = QPushButton("Top")
         self.control_down_button = QPushButton("Down")
         self.control_lift_button = QPushButton("Lift")
@@ -119,9 +135,18 @@ class MainWindow(QMainWindow):
         stream_groupbox = QGroupBox("RTSP")
         stream_groupbox.setLayout(stream_combobox_layout)
 
+        # Init database groupbox
+        database_layout = QHBoxLayout()
+        database_layout.addWidget(self.add_face_button)
+        database_layout.addWidget(self.manage_face_button)
+        database_layout.addWidget(self.database_button)
+        database_groupbox = QGroupBox("Face Data Base")
+        database_groupbox.setLayout(database_layout)
+
         # button box
         button_layout = QVBoxLayout()
         button_layout.addWidget(stream_groupbox, 1)
+        button_layout.addWidget(database_groupbox, 1)
         button_layout.addWidget(functions_groupbox, 1)
         button_layout.addWidget(debug_groupbox, 1)
         # button_layout.addItem(self.spacerItem)
@@ -138,6 +163,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
         
         # --------------------------------------------------------
+        self.database = './FaceBase.db'
+        self.trainingData = './recognizer/trainingData.yml'
         self.message = Message()
         self.client = None
         self.rtsp_url = None
@@ -159,6 +186,9 @@ class MainWindow(QMainWindow):
     def handle_buttons(self):
         self.play_video_button.clicked.connect(self.video_start)
         # self.unplay_video_button.clicked.connect(self.video_stop)
+        self.add_face_button.clicked.connect(self.add_face)
+        self.manage_face_button.clicked.connect(self.manage_face)
+        self.database_button.clicked.connect(self.init_face_database)
         self.control_top_button.clicked.connect(self.control_top)
         self.control_down_button.clicked.connect(self.control_down)
         self.control_lift_button.clicked.connect(self.control_lift)
@@ -268,6 +298,48 @@ class MainWindow(QMainWindow):
         except:
             print("Can't open rtsp stream!!!")
             self.video_timer.stop()
+
+    def add_face(self):
+        win = DataRecordUI()
+        win.show()
+
+    def manage_face(self):
+        print("manage_face")
+        win = DataManageUI()
+        win.show()
+
+
+    def init_face_database(self):
+        try:
+            if not os.path.isfile(self.database):
+                raise DatabaseNotFoundError
+            if not os.path.isfile(self.trainingData):
+                raise TrainingDataNotFoundError
+
+            conn = sqlite3.connect(self.database)
+            cursor = conn.cursor()
+            cursor.execute('SELECT Count(*) FROM users')
+            result = cursor.fetchone()
+            dbUserCount = result[0]
+        except DatabaseNotFoundError:
+            print('系统找不到数据库文件{}'.format(self.database))
+            print('Error：未发现数据库文件，你可能未进行人脸采集')
+        except TrainingDataNotFoundError:
+            print('系统找不到已训练的人脸数据{}'.format(self.trainingData))
+            print('Error：未发现已训练的人脸数据文件，请完成训练后继续')
+        except Exception as e:
+            print('读取数据库异常，无法完成数据库初始化')
+            print('Error：读取数据库异常，初始化数据库失败')
+        else:
+            cursor.close()
+            conn.close()
+            if not dbUserCount > 0:
+                print('数据库为空，人脸识别功能不可用')
+            else:
+                print('Success：数据库状态正常，发现用户数：{}'.format(dbUserCount))
+                self.database_button.setEnabled(False)
+                self.face_detection_checkbox.setToolTip('须先开启人脸跟踪')
+                self.face_detection_checkbox.setEnabled(True)
 
     def control_top(self):
         print("control top clicked.")

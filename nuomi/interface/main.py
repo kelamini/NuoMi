@@ -2,8 +2,8 @@ import sys
 import os
 import os.path as osp
 
-from qtpy import QtCore
-from qtpy import QtWidgets
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
 
 from app import MainWindow
 from utils import newIcon
