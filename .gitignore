@@ -1,7 +1,10 @@
 __pycache__
-build
-data
-video
+build/
+data/
+datasets/
+video/
+*.db
+recognizer/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

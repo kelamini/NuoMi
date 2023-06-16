@@ -28,13 +28,13 @@ def abt_frame_cap(save_dir, step=30):
             datetime = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
             save_path = osp.join(save_dir, f"{datetime}_{str(cnt//step).zfill(8)}.jpg")
             print(f"===> save frame {cnt} in: {save_path}")
-            cv.imwrite(save_path, frame)
+            # cv.imwrite(save_path, frame)
         cnt += 1
     cap.release()
     
 
 
 if __name__ == "__main__":
-    save_dir = ""
+    save_dir = "data"
     step = 20
     abt_frame_cap(save_dir, step)

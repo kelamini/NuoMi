@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(stream_groupbox, 1)
         button_layout.addWidget(database_groupbox, 1)
         button_layout.addWidget(functions_groupbox, 1)
-        button_layout.addWidget(debug_groupbox, 1)
+        # button_layout.addWidget(debug_groupbox, 1)
         # button_layout.addItem(self.spacerItem)
         button_layout.addWidget(self.textBrowser, 5)
 
@@ -307,7 +307,6 @@ class MainWindow(QMainWindow):
         print("manage_face")
         win = DataManageUI()
         win.show()
-
 
     def init_face_database(self):
         try:

@@ -81,7 +81,7 @@ class Server:
 
 
 class Client:
-    def __init__(self, ip="192.168.4.15", point=8000):
+    def __init__(self, ip="192.168.124.56", point=8000):
         self.ip = ip
         self.point = point
     
