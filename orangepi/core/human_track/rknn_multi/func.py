@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 
-OBJ_THRESH, NMS_THRESH, IMG_SIZE = 0.5, 0.45, 640
+OBJ_THRESH, NMS_THRESH, IMG_SIZE = 0.4, 0.45, 640
 
 CLASSES = ("person", "bicycle", "car", "motorbike ", "aeroplane ", "bus ", "train", "truck ", "boat", "traffic light",
            "fire hydrant", "stop sign ", "parking meter", "bench", "bird", "cat", "dog ", "horse ", "sheep", "cow", "elephant",

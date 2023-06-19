@@ -9,7 +9,7 @@ from arrayFuc import readImgFromArray, writeImgFromArray
 
 
 
-def gesThread(img_cam, img_ges, event, val):
+def gesThread(img_cam, img_ges, event, ary):
 
     # 等待事件
     event.wait()
@@ -58,11 +58,13 @@ def gesThread(img_cam, img_ges, event, val):
             # class
            
             # print("get gesture is ",  getGesture(retData))
-            val.value = getGesture(retData)
+            ary[9] = getGesture(retData)
+
             # print("")
             
             if frames % 30 == 0:
                 print("this is gesture")
+                # print(ary[9])
                 # print("gesture: 30帧平均帧率:\t", 30 / (time.time() - loopTime), "帧")
 
                 # print("img",retData[0])

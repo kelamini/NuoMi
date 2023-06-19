@@ -2,14 +2,14 @@ import cv2
 import time
 from rknnpool import rknnPoolExecutor
 # 图像处理函数，实际应用过程中需要自行修改
-from func import firFunc
+from func import firFunc, getFire
 import numpy as np
 
 from arrayFuc import readImgFromArray, writeImgFromArray 
 
 
 
-def fireThread(img_cam, img_fir, event):
+def fireThread(img_cam, img_fir, event, ary):
 
     # 等待事件
     event.wait()
@@ -52,6 +52,8 @@ def fireThread(img_cam, img_fir, event):
             # 从线程池取结果
             retData ,flag = pool.get()
 
+            ary[11] = getFire(retData)
+            
             # 结果图片
             img = retData[0]
     

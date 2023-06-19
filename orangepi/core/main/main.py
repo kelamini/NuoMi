@@ -23,14 +23,17 @@ from uart import uartThread
 
 swich_key = 0
 
-#IP = "192.168.4.15"
-IP = "192.168.124.56"
+IP = "192.168.4.15"
+# IP = "192.168.124.56"
 PORT = 8000
 
 
-CAP_NUM_0 = 4
+CAP_NUM_0 = 0
 CAP_NUM_1 = 2
-CAP_NUM_2 = 0
+CAP_NUM_2 = 4
+
+
+SERVER_NUM = 0x101
 
 # init server
 server = Server(IP, PORT)
@@ -113,20 +116,21 @@ class VideoProcess:
         
         while(True):
 
+            camSts = myReadBit(self.serVal.value, 0)
+            huaSts = myReadBit(self.serVal.value, 8)
+            gesSts = myReadBit(self.serVal.value, 10)    
+
+
             ret0, imgCam0 = self.cap0.read() 
             # ret0, img0 = self.cap1.read() 
             
             if ret0:
                 # write image0
                 img_cam0.write(imgCam0)
-            
-            camSts = myReadBit(self.serVal.value, 0)
-            huaSts = myReadBit(self.serVal.value, 8)
-            gesSts = myReadBit(self.serVal.value, 10)
-            # print("val:", bin(self.serVal))
-            # print("camSts", camSts)
-            # print("huaSts", huaSts)
-            # print("gesSts", gesSts)
+            else:
+                print("runCam0 data error")
+                time.sleep(1)
+    
 
             # both human and gesture
             if huaSts and gesSts:
@@ -170,8 +174,34 @@ class VideoProcess:
                 multi_process.susPro("hum")
                 multi_process.susPro("ges")
                 self.data2server(camSts, imgCam0) 
+
+            # facSts = myReadBit(self.serVal.value, 9) 
+            # firSts = myReadBit(self.serVal.value, 11)
+
+            # # both human and gesture
+            # elif facSts:
+                
+            #     multi_process.resPro("fac")
+            #     eFac.set()   
+            #     img_deal = img_fac.read()
+
+            #     self.data2server(camSts, img_deal) 
+
+            # elif firSts:
+                
+            #     multi_process.resPro("fir")
+            #     eFir.set()   
+            #     img_deal = img_fir.read()
+
+            #     self.data2server(camSts, img_deal)
+
+            # #none
+            # else:
+            #     multi_process.susPro("hum")
+            #     multi_process.susPro("ges")
+            #     self.data2server(camSts, imgCam0)    
                    
-# process run
+    # cam1 process
     def runCam1(self,
             multi_process,
             img_cam1,
@@ -179,17 +209,20 @@ class VideoProcess:
             eFac,
             ):
         while(True):
-                               
+            camSts = myReadBit(self.serVal.value, 1)
+            facSts = myReadBit(self.serVal.value, 9)     
+
+
             ret, imgCam = self.cap1.read() 
             
             if ret:
                 # write image0
                 img_cam1.write(imgCam)
+            else:
+                print("runCam1 data error")
+                time.sleep(1)
 
-
-            camSts = myReadBit(self.serVal.value, 1)
-            facSts = myReadBit(self.serVal.value, 9)
-         
+            
             # both human and gesture
             if facSts:
                 
@@ -202,7 +235,8 @@ class VideoProcess:
                 
                 multi_process.susPro("fac")
                 self.data2server(camSts, imgCam)
-
+           
+    # cam2 process
     def runCam2(self,
             multi_process,
             img_cam2,
@@ -210,16 +244,20 @@ class VideoProcess:
             eFir,
             ):
         while(True):
-                               
-            ret, imgCam = self.cap2.read() 
-            
-            if ret:
-                # write image0
-                img_cam2.write(imgCam)
-
 
             camSts = myReadBit(self.serVal.value, 2)
             firSts = myReadBit(self.serVal.value, 11)
+
+            ret, imgCam = self.cap2.read() 
+                                
+            if ret:
+                # write image0
+                img_cam2.write(imgCam)
+            else:
+                print("runCam2 data error")
+                time.sleep(1)
+
+            
             # print("camsts", camSts)
             # both human and gesture
             if firSts:
@@ -234,7 +272,7 @@ class VideoProcess:
                 # print("camsts", )
                 multi_process.susPro("fir")
                 self.data2server(camSts, imgCam)
-                                    
+                        
     def data2server(self, camSts, img):
         if camSts:
             self.serBuf.write(img)
@@ -272,13 +310,14 @@ if __name__ == '__main__':
 
 
     # 共享内存
+
+    uartListAry = multiprocessing.Array(ctypes.c_uint8, 18, lock= False)
+
+
     imgCam0 = ArrayLockClass()
     imgCam1 = ArrayLockClass()
     imgCam2 = ArrayLockClass()
 
-    # imgCam0Deal = ArrayLockClass()
-    # imgCam1Deal = ArrayLockClass()
-    # imgCam2Deal = ArrayLockClass()
 
     imgHum = ArrayLockClass()
     imgFac = ArrayLockClass()
@@ -308,12 +347,12 @@ if __name__ == '__main__':
     gesVal = multiprocessing.Manager().Value(ctypes.c_int, 11)
 
 
-    humProces = multiprocessing.Process(target=human_track_thread, args = (imgCam0, imgHum, eHum,))
-    gesProces = multiprocessing.Process(target=gesThread, args = (imgCam0, imgGes, eGes, gesVal,))
+    humProces = multiprocessing.Process(target=human_track_thread, args = (imgCam0, imgHum, eHum, uartListAry,))
+    gesProces = multiprocessing.Process(target=gesThread, args = (imgCam0, imgGes, eGes, uartListAry,))
 
     facProces = multiprocessing.Process(target=face_detec_thread, args = (imgCam1, imgFac,eFace,))
 
-    firProces = multiprocessing.Process(target=fireThread, args = (imgCam2, imgFir, eFir,))
+    firProces = multiprocessing.Process(target=fireThread, args = (imgCam2, imgFir, eFir, uartListAry,))
 
    
     humProces.start()
@@ -327,7 +366,7 @@ if __name__ == '__main__':
                                 gesProces.pid,
                                 firProces.pid)
 
-     #------------------------------  Process  ----------------------------#
+    #  ------------------------------  Process  ----------------------------#
     video = VideoProcess(CAP_NUM_0, CAP_NUM_1, CAP_NUM_2, imgSer, serVal)
     
 
@@ -355,7 +394,7 @@ if __name__ == '__main__':
 
     time.sleep(0.1)
 
-    uartProces = multiprocessing.Process(target = uartThread, args = ( gesVal,))
+    uartProces = multiprocessing.Process(target = uartThread, args = ( uartListAry, serVal, ))
     uartProces.start()
 
     pulThread =  multiprocessing.Process(target=pulish_thread, args= (IP,
@@ -364,7 +403,7 @@ if __name__ == '__main__':
     pulThread.start()
     
 
-    serThread = multiprocessing.Process(target=server_thread, args= (server, eSer, serVal))
+    serThread = multiprocessing.Process(target=server_thread, args= (server, eSer, serVal, uartListAry))
     serThread.start()
 
 

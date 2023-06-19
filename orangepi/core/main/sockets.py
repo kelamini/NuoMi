@@ -178,7 +178,7 @@ class SysFlag:
         # Enable Cam0
         self.flag = val
         
-    def match(self, str):
+    def match(self, str, ary):
 
         # init
         if str == "mystream_0": 
@@ -199,26 +199,42 @@ class SysFlag:
         elif str == "ON_person_track":
             # self.flag = 2
             self.setBit(SYS_FLAG_BIT_MODEL_HUM, SYS_FLAG_ON)
+            ary[1] = 1
+            
         elif str == "OFF_person_track":
             self.setBit(SYS_FLAG_BIT_MODEL_HUM, SYS_FLAG_OFF)
+            ary[1] = 0
+            
 
         # face
         elif str == "ON_face_detection":
             self.setBit(SYS_FLAG_BIT_MODEL_FAC, SYS_FLAG_ON)
+            ary[3] = 1
+            
         elif str == "OFF_face_detection":
             self.setBit(SYS_FLAG_BIT_MODEL_FAC, SYS_FLAG_OFF)  
+            ary[3] = 0
+            
 
         # gesture
         elif str == "ON_gesture_recognition":
             self.setBit(SYS_FLAG_BIT_MODEL_GES, SYS_FLAG_ON)
+            ary[2] = 1
+            
         elif str == "OFF_gesture_recognition":
             self.setBit(SYS_FLAG_BIT_MODEL_GES, SYS_FLAG_OFF)
+            ary[2] = 0
+           
 
         # fire
         elif str == "ON_fire_smoke":
             self.setBit(SYS_FLAG_BIT_MODEL_FIR, SYS_FLAG_ON)
+            ary[4] = 1
+             
         elif str == "OFF_fire_smoke":
             self.setBit(SYS_FLAG_BIT_MODEL_FIR, SYS_FLAG_OFF)
+            ary[4] = 0
+            
     
         
     def setBit(self, bit, val):
@@ -233,7 +249,7 @@ sysCtl = SysFlag()
 
 
 # server: server class
-def server_thread(server, even, ser_data):
+def server_thread(server, even, ser_data, ary):
     
     server.listen_connection()
         
@@ -254,7 +270,7 @@ def server_thread(server, even, ser_data):
         print("optional_key:", server.optional_key)
         server.conn.send("True".encode("utf-8"))
 
-        sysCtl.match(server.optional_key)
+        sysCtl.match(server.optional_key, ary)
         # sysCtl.flag = 10
         ser_data.value = sysCtl.flag 
         # print("valus is ", bin(5))

@@ -8,35 +8,38 @@ from serve import Ser
 from control import DeltaPID
 import multiprocessing
 import numpy as np
-# Pitch limit
-PIT_DUTY_DOWN = 90
-PIT_DUTY_UP = 10
-PIT_DUTY_NOR = 50
-PIT_PWM_CHIPX = 0     # PWM chip    
-PIT_PWM_CH = 0        # PWM ch      PWM0
-PIT_PWM_HZ = 50
+
 
 YAW_DUTY_LEFT = 100
 YAW_DUTY_RIGHT= 0
-YAW_DUTY_NOR = 55
+YAW_DUTY_NOR = 56
 YAW_PWM_CHIPX = 1     # PWM chip  PWM1
 YAW_PWM_CH = 0        # PWM ch 
 YAW_PWM_HZ = 50
 
+
+# Pitch limit
+PIT_DUTY_DOWN = 25
+PIT_DUTY_UP = 75
+PIT_DUTY_NOR = 45
+PIT_PWM_CHIPX = 0     # PWM chip    
+PIT_PWM_CH = 0        # PWM ch      PWM0
+PIT_PWM_HZ = 50
+
 CENTER_X = 320
 CENTER_Y = 320+50
 
-AXSI_FITER_PRE = 50
+AXSI_FITER_PRE = 90
 
 yawSer = Ser(YAW_PWM_CHIPX, YAW_PWM_CH, YAW_PWM_HZ, YAW_DUTY_NOR, YAW_DUTY_LEFT, YAW_DUTY_RIGHT)
-pitSer = Ser(PIT_PWM_CHIPX, PIT_PWM_CH, PIT_PWM_HZ, PIT_DUTY_NOR, PIT_DUTY_DOWN, PIT_DUTY_UP)
+pitSer = Ser(PIT_PWM_CHIPX, PIT_PWM_CH, PIT_PWM_HZ, PIT_DUTY_NOR, PIT_DUTY_UP, PIT_DUTY_DOWN)
 
-yawPid = DeltaPID(YAW_DUTY_NOR, 0.15, 0.02, 0.01, 0.01)
-pitPid = DeltaPID(PIT_DUTY_NOR, 0.15, 0.01, 0.01, 0.00)
+yawPid = DeltaPID(YAW_DUTY_NOR, 0.15, 0.020, 0.015, 0)
+pitPid = DeltaPID(PIT_DUTY_NOR, 0.15, 0.020, 0.018, 0)
 
 
 
-def human_track_thread(img_cam0, img_hum, event):
+def human_track_thread(img_cam0, img_hum, event, ary):
 
     #cap = cv2.VideoCapture('./video/islandBenchmark.mp4')
     # cap = cv2.VideoCapture(num)
@@ -118,15 +121,29 @@ def human_track_thread(img_cam0, img_hum, event):
                     cv2.circle(img, (person_x, person_y), 4, (0, 0, 255), 2)
                     cv2.circle(img, (CENTER_X, CENTER_Y), 4, (0, 255, 0), 2)
 
-                    yawPid.calcalate(CENTER_X, imgCen_x)
-                    pitPid.calcalate(imgCen_y, CENTER_Y)
+                    if abs(CENTER_X-imgCen_x) > 10:
+                        yawPid.calcalate(CENTER_X, imgCen_x)
+
+                    if abs(CENTER_Y-imgCen_y) > 10:
+                        pitPid.calcalate(CENTER_Y, imgCen_y)
 
                     yawSer.set(yawPid.cur_val)
                     pitSer.set(pitPid.cur_val)
+                # 共享内存
+                ary[5] = int(imgCen_x)&0xF0           # 高8位
+                ary[6] = int(imgCen_x)&0x0F           # 低8位
+                ary[7] = int(imgCen_y)&0xF0           # 高8位
+                ary[8] = int(imgCen_y)&0x0F           # 低8位
             else:
                 person_flag = 0
                 personSum_x = 0
                 personSum_y = 0
+
+                 # 共享内存
+                ary[5] = 0           # 高8位
+                ary[6] = 0           # 低8位
+                ary[7] = 0           # 高8位
+                ary[8] = 0           # 低8位
                 
                 
             if frames % 30 == 0:

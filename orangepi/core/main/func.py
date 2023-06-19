@@ -333,3 +333,23 @@ def getGesture(data):
        
     else:
         return 11
+def getFire(data):
+    
+    boxes, classes, scores = data[1],data[2],data[3]
+
+    dat = 0
+    # 检测到分类
+    if classes is not None:
+
+        #获取识别的物体数量
+        class_len = len(classes)
+
+        for i in range(class_len):
+            if(classes[i] == 0):
+                dat |= 0x01
+            elif(classes[i] == 1):
+                dat |= 0x10
+        
+       
+        #return classes[maxScor]  
+    return dat

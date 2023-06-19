@@ -54,7 +54,7 @@ class FfmpegPublishRtsp:
         self.stream = streamrtsp
     
     def init_videocapture(self):
-        self.cap = cv.VideoCapture(2)
+        self.cap = cv.VideoCapture(0)
         if not self.cap.isOpened():
             raise Exception("Can't open video capture!!!")
         self.fps = int(self.cap.get(cv.CAP_PROP_FPS))

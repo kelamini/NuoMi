@@ -20,7 +20,7 @@ class DeltaPID(object):
         delta_output = p_change + i_change + d_change  # 本次增量
         self.cur_val += delta_output  # 计算当前位置
 
-		self._pre_pre_error = self._pre_error
+        self._pre_pre_error = self._pre_error
         self._pre_error = error
 
         return self.cur_val
